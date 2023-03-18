@@ -49,14 +49,14 @@ class Node:
         """."""
         return self.parent is None
 
-    def backpropagte(self, delta: int) -> None:
+    def propagate(self, delta: int) -> None:
         """Update nk & wk values accordingly."""
         self.n_k = self.n_k + 1
-        self.w_k = w_k + delta
+        self.w_k = self.w_k + delta
 
-    def ucb(self, w, n) -> float:
+    def ucb(self) -> float:
         """."""
-        return (w/n) + 2 * math.sqrt((math.log(self.n_k) / n))
+        return (self.w_k/self.n_k) + 2 * math.sqrt((math.log(self.parent.n_k) / self.n_k))
 
 
     

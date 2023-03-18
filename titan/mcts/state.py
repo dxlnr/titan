@@ -8,14 +8,5 @@ class State:
     def get_possible_moves(self):
         return list(self.obj.legal_moves)
 
-    def __getitem__(self, idx):
-        pass
-    
-    @classmethod
-    def get_updated(cls, move: str):
-        new_state = cls.copy()
-        # move = chess.Move.from_uci(move)
-        # print(move)
-        new_state.state.push(chess.Move.from_uci(move))
-        # return board.push(chess.Move.from_uci(move))
-        return new_state
+    def is_terminated(self) -> bool:
+        return self.obj.is_game_over()
