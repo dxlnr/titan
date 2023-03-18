@@ -1,30 +1,38 @@
 import chess
+import copy
 
 from titan.mcts.node import Node
+from titan.mcts.state import State
 
 board = chess.Board()
+state = State(board)
 
-lm = list(board.legal_moves)
-print(len(lm), lm)
-
-class State():
-    """Defines the state of the specific game. In this case it is chess."""
-
-    def __init__(self):
-        pass
-
-    def get_possible_moves(self):
-        pass
-
-
-state = board
-s0 = Node(state)
-
-def run_mcts(node: Node, state: chess.Board(), n_rollouts: int = 10):
+def run_mcts(state: State, n_rollouts: int = 100):
     """Runs the Monte-Carlo Tree Search."""
+    root_node = Node()
     for i in range(n_rollouts):
-        for a in state.legal_moves:
-            node.expand(a)
+        node, s = root_node, copy.deepcopy(state)
+        
+        # (1) Select
+        while not node.is_leaf_node():
+            node = policy(node)
+            s.update(node.move)
+        
+        # (2) Expand
+        node.expand(s)
+        node = policy(node)
 
+        # (3) Simulate
+        while not s.is_terminated():
+            s = simulate_policy(node)
 
-run_mcts(s0, state)
+        delta = s.eval()
+
+        # (4) Backpropage
+        while not n.is_root():
+            n.update(delta)
+            n = n.parent
+
+        break 
+
+run_mcts(state)
