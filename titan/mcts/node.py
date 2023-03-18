@@ -13,6 +13,9 @@ class Node:
         # self.state = state
         self.children = list()
     
+    def __repr__(self):
+        return f"Node( nk: {self.n_k}, w_k: {self.w_k}, move: {self.move}, parent: {self.parent}."
+
     # def select(self):
     #     if not terminal(state):
     #         for each non-isomorphic legal move m of state:
@@ -37,9 +40,10 @@ class Node:
 
     def expand(self, state):
         """Expands the tree."""
-        for m in state.get_possible_moves():
-            c_node = Node(m, self)
-            self.children.append(c_node)
+        if not state.is_terminated():
+            for m in state.get_possible_moves():
+                c_node = Node(m, self)
+                self.children.append(c_node)
 
     def is_leaf_node(self) -> bool:
         """."""
@@ -56,6 +60,7 @@ class Node:
 
     def ucb(self) -> float:
         """."""
+        # print("self.wk, self.nk, parent.nk", self.w_k, self.n_k, self.parent.n_k)
         return (self.w_k/self.n_k) + 2 * math.sqrt((math.log(self.parent.n_k) / self.n_k))
 
 
