@@ -37,6 +37,3 @@ class Node:
     def ucb(self) -> float:
         """."""
         return (self.w_k/self.n_k) + 2 * math.sqrt((math.log(self.parent.n_k) / self.n_k))
-
-
-    

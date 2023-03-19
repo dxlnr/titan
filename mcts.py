@@ -1,7 +1,8 @@
 """Monte-Carlo Tree Search"""
 import chess
 import copy
-import random 
+import random
+from tqdm import tqdm
 
 from titan.mcts.node import Node
 from titan.mcts.state import State
@@ -25,7 +26,8 @@ def policy(node: Node) -> Node:
         else:
             if (val := n.ucb()) > ucb:
                 idx = i
-
+                ucb = val
+    
     return node.children[idx]
 
 
@@ -35,10 +37,19 @@ def simulate_policy(state: State) -> State:
     return state
 
 
-def run_mcts(state: State, n_rollouts: int = 500):
+def best_move(node: Node, flag: str = 'v'):
+    """."""
+    if flag == 'v':
+        from operator import attrgetter
+        cn = max(node.children, key=attrgetter('n_k'))
+    
+    return cn
+    
+
+def run_mcts(state: State, n_rollouts: int = 5000):
     """Runs the Monte-Carlo Tree Search."""
     root_node = Node()
-    for i in range(n_rollouts):
+    for i in tqdm(range(n_rollouts)):
         node, s = root_node, copy.deepcopy(state)
 
         # (1) Select
@@ -48,7 +59,8 @@ def run_mcts(state: State, n_rollouts: int = 500):
 
         # (2) Expand
         node.expand(s)
-        node = policy(node)
+        if not node.is_leaf_node() or not s.is_terminated():
+            node = policy(node)
 
         # (3) Simulate
         while not s.is_terminated():
@@ -63,5 +75,14 @@ def run_mcts(state: State, n_rollouts: int = 500):
         
             node = node.parent
 
+    return root_node
 
-run_mcts(state)
+node = run_mcts(state)
+print("")
+for nc in node.children:
+    print(nc)
+
+move_node = best_move(node)
+print("")
+print("move : ", move_node.move)
+print("")

@@ -24,15 +24,9 @@ class State:
         self.update(random.choice(list(self.obj.legal_moves)))
 
     def eval(self):
+        """."""
         outcome = self.obj.outcome()
-        print("")
-        print("Game result : ")
-        print(outcome)
-        print(outcome.result())
-        print(outcome.winner)
         delta = 1 if outcome.winner is True else 0
-        print("delta : ", delta)
-        print("")
         return delta
         
 
