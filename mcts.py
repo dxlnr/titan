@@ -15,7 +15,7 @@ def policy(node: Node) -> Node:
     """Policy that defines which node gets choosen next.
 
     The formula which is used is called UCT (Upper Confidence Bound 1 applied to trees).
-    The node with the highest UCT gets choosen. 
+    The node with the highest UCT gets choosen.
     """
     idx = 0
     ucb = 0
@@ -27,7 +27,7 @@ def policy(node: Node) -> Node:
             if (val := n.ucb()) > ucb:
                 idx = i
                 ucb = val
-    
+
     return node.children[idx]
 
 
@@ -37,16 +37,17 @@ def simulate_policy(state: State) -> State:
     return state
 
 
-def best_move(node: Node, flag: str = 'v'):
+def best_move(node: Node, flag: str = "v"):
     """."""
-    if flag == 'v':
+    if flag == "v":
         from operator import attrgetter
-        cn = max(node.children, key=attrgetter('n_k'))
-    
-    return cn
-    
 
-def run_mcts(state: State, n_rollouts: int = 5000):
+        cn = max(node.children, key=attrgetter("n_k"))
+
+    return cn
+
+
+def run_mcts(state: State, n_rollouts: int = 10000):
     """Runs the Monte-Carlo Tree Search."""
     root_node = Node()
     for i in tqdm(range(n_rollouts)):
@@ -72,10 +73,11 @@ def run_mcts(state: State, n_rollouts: int = 5000):
             node.propagate(delta)
             if node.is_root_node():
                 break
-        
+
             node = node.parent
 
     return root_node
+
 
 node = run_mcts(state)
 print("")

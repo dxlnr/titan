@@ -13,7 +13,7 @@
 <body>
         
     <div id="board" style="width: 600px"></div>
-    <button id="startBtn">Start Position</button>
+    <button id="startBtn">Reset Position</button>
     <button id="clearBtn">Clear Board</button>
 
     <!-- <p>Where is the board?</p> -->
@@ -23,7 +23,27 @@
         var board = Chessboard('board', {
             position: 'start',
             draggable: true,
+            onDrop: onDrop,
         });
+
+        function onDrop (source, target, piece, newPos, oldPos, orientation) {
+            if(source == target) return
+
+            var pos = Chessboard.objToFen(newPos);
+            $.post('/move', { 'new_pos': pos } );
+
+            $.get('/engine_move', function(r) {
+                board.move(r);
+            }); 
+
+            console.log('Source: ' + source)
+            console.log('Target: ' + target)
+            console.log('Piece: ' + piece)
+            console.log('New position: ' + Chessboard.objToFen(newPos))
+            console.log('Old position: ' + Chessboard.objToFen(oldPos))
+        }
+
+
         
         $('#startBtn').on('click', board.start)
         $('#clearBtn').on('click', board.clear)

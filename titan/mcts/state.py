@@ -5,9 +5,12 @@ import random
 class State:
     """Defines the state of the specific game. In this case it is chess."""
 
-    def __init__(self, obj):
+    def __init__(self, obj=None):
         # In this case the chess.Board class.
-        self.obj = obj
+        if obj is None:
+            self.obj = chess.Board()
+        else:
+            self.obj = obj
 
     def get_possible_moves(self) -> list:
         return list(self.obj.legal_moves)
@@ -28,5 +31,3 @@ class State:
         outcome = self.obj.outcome()
         delta = 1 if outcome.winner is True else 0
         return delta
-        
-

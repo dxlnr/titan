@@ -5,12 +5,12 @@ from titan.mcts.state import State
 
 
 class Node:
-    def __init__(self, move: str = '', parent = None):
+    def __init__(self, move: str = "", parent=None):
         self.n_k, self.w_k = 0, 0
         self.move = move
         self.parent = parent
         self.children = list()
-    
+
     def __repr__(self):
         return f"Node( nk: {self.n_k}, w_k: {self.w_k}, move: {self.move}, parent: {self.parent}."
 
@@ -36,4 +36,6 @@ class Node:
 
     def ucb(self) -> float:
         """."""
-        return (self.w_k/self.n_k) + 2 * math.sqrt((math.log(self.parent.n_k) / self.n_k))
+        return (self.w_k / self.n_k) + 2 * math.sqrt(
+            (math.log(self.parent.n_k) / self.n_k)
+        )
