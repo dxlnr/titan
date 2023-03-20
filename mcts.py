@@ -4,11 +4,8 @@ import copy
 import random
 from tqdm import tqdm
 
-from titan.mcts.node import Node
-from titan.mcts.state import State
-
-board = chess.Board()
-state = State(board)
+from titan.mcts import Node, State
+from titan.mcts.chess_state import ChessState
 
 
 def policy(node: Node) -> Node:
@@ -18,15 +15,15 @@ def policy(node: Node) -> Node:
     The node with the highest UCT gets choosen.
     """
     idx = 0
-    ucb = 0
+    uct = 0
     for i, n in enumerate(node.children):
         if n.n_k == 0:
             idx = i
             break
         else:
-            if (val := n.ucb()) > ucb:
+            if (val := n.uct()) > uct:
                 idx = i
-                ucb = val
+                uct = val
 
     return node.children[idx]
 
@@ -37,17 +34,17 @@ def simulate_policy(state: State) -> State:
     return state
 
 
-def best_move(node: Node, flag: str = "v"):
+def choose_move(node: Node, flag: str = "v") -> str:
     """."""
     if flag == "v":
         from operator import attrgetter
 
         cn = max(node.children, key=attrgetter("n_k"))
 
-    return cn
+    return cn.move
 
 
-def run_mcts(state: State, n_rollouts: int = 10000):
+def mcts(state: State, n_rollouts: int = 250):
     """Runs the Monte-Carlo Tree Search."""
     root_node = Node()
     for i in tqdm(range(n_rollouts)):
@@ -60,11 +57,11 @@ def run_mcts(state: State, n_rollouts: int = 10000):
 
         # (2) Expand
         node.expand(s)
-        if not node.is_leaf_node() or not s.is_terminated():
+        if not node.is_leaf_node() or not s.is_terminal():
             node = policy(node)
 
         # (3) Simulate
-        while not s.is_terminated():
+        while not s.is_terminal():
             s = simulate_policy(s)
         delta = s.eval()
 
@@ -75,16 +72,18 @@ def run_mcts(state: State, n_rollouts: int = 10000):
                 break
 
             node = node.parent
+    
+    return choose_move(root_node)
 
-    return root_node
 
-
-node = run_mcts(state)
-print("")
-for nc in node.children:
-    print(nc)
-
-move_node = best_move(node)
-print("")
-print("move : ", move_node.move)
-print("")
+if __name__ == "__main__":
+    # Initiate some board state.
+    state = ChessState(chess.Board())
+    
+    # Runs the Monte-Carlo Tree Search to predict the next move.
+    move = mcts(state)
+    
+    # Print results.
+    print("")
+    print("Predicted move : ", move)
+    print("")

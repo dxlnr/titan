@@ -1,33 +1,25 @@
-import chess
-import random
+"""Generic State Representation."""
+from typing import Any
+from abc import ABC, abstractmethod 
 
 
-class State:
-    """Defines the state of the specific game. In this case it is chess."""
+class State(ABC):
+    @abstractmethod
+    def is_terminal(self) -> bool:
+        """Returns a boolean indicating whether the current state is terminal."""
+        return NotImplemented
 
-    def __init__(self, obj=None):
-        # In this case the chess.Board class.
-        if obj is None:
-            self.obj = chess.Board()
-        else:
-            self.obj = obj
+    @abstractmethod
+    def update(self) -> None:
+        """Updates the internal state object."""
+        return NotImplemented
 
+    @abstractmethod
+    def eval(self) -> Any:
+        """Evaluates the outcome of the some state and returns some reward."""
+        return NotImplemented
+
+    @abstractmethod
     def get_possible_moves(self) -> list:
-        return list(self.obj.legal_moves)
-
-    def is_terminated(self) -> bool:
-        return self.obj.is_game_over()
-
-    def update(self, move: str) -> None:
-        """Updates the board with a specfic move."""
-        self.obj.push(chess.Move.from_uci(str(move)))
-
-    def random_upd(self) -> None:
-        """Finds a random move and updates the board."""
-        self.update(random.choice(list(self.obj.legal_moves)))
-
-    def eval(self):
-        """."""
-        outcome = self.obj.outcome()
-        delta = 1 if outcome.winner is True else 0
-        return delta
+        """Returns a list of possible future steps from the current state."""
+        return NotImplemented

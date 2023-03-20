@@ -9,6 +9,9 @@ Zero Knowledge Chess Engine
 ### MU Zero 
 policy and value networks
 
+- The **representation function** which takes in current and prior oberservations and 
+emits a state or state embeddings. 
+
 - The **policy network** is a probability distribution over all actions *a* that can be taken in state *s*.
     It enables the system to estimate the actions that are most likely to lead to success.
 
