@@ -1,4 +1,3 @@
-from .state import State
-from .node import Node
+from .mcts import mcts
 
-__all__ = ['Node', 'State']
+__all__ = ['mcts']

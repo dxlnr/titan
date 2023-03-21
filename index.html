@@ -5,9 +5,11 @@
 	<!-- <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src http://www.chessdb.cn http://explorer.lichess.ovh"> -->
 	<title>Titan Chess Engine</title>
     <link rel="stylesheet" type="text/css" href="static/chessboard.css">
-
+    
     <script src="static/jquery.min.js"></script>
     <script src="static/chessboard.js"></script>
+    <script src="static/chess.js"></script>
+    
 </head>
 
 <body>
@@ -19,30 +21,53 @@
     <!-- <p>Where is the board?</p> -->
 
     <script type="text/javascript">
+        var game = new Chess();
 
         var board = Chessboard('board', {
             position: 'start',
             draggable: true,
+            onDragStart: onDragStart,
             onDrop: onDrop,
         });
 
-        function onDrop (source, target, piece, newPos, oldPos, orientation) {
-            if(source == target) return
+        function onDrop (source, target) {
+            // Check if move is legal.
+            var move = board.move({from: source, to: target, promotion: 'q'});
 
-            var pos = Chessboard.objToFen(newPos);
-            $.post('/move', { 'new_pos': pos } );
-
-            $.get('/engine_move', function(r) {
-                board.move(r);
-            }); 
-
-            console.log('Source: ' + source)
-            console.log('Target: ' + target)
-            console.log('Piece: ' + piece)
-            console.log('New position: ' + Chessboard.objToFen(newPos))
-            console.log('Old position: ' + Chessboard.objToFen(oldPos))
+            // Illegal move is played.
+            if (move === null) return 'snapback'
+            // updateStatus()
         }
 
+        function onDragStart (source, piece, position, orientation) {
+            // DO not pick up pieces if the game is over
+            // if (board.game_over()) return false
+
+            // only pick up pieces for the side to move
+            if ((board.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (board.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                return false
+            }
+        }
+
+        // function onDrop (source, target, piece, newPos, oldPos, orientation) {
+            // if(source == target) return
+            
+            // board.move("a2-a3");
+            // board.move({from: 'h1', to: 'f1', piece: 'wR'});
+            // if(piece == 'wK' && source == 'e1' && target == 'g1') {
+                // board.move({from: 'h1', to: 'f1', piece: 'wR'});
+                // return
+            // }
+
+            // var pos = Chessboard.objToFen(newPos);
+            // $.post('/move', { 'new_pos': pos } );
+
+            // $.get('/engine_move', function(r) {
+                // board.move(r);
+            // }); 
+
+        // }
 
         
         $('#startBtn').on('click', board.start)

@@ -1,11 +1,10 @@
 """Monte-Carlo Tree Search"""
-import chess
 import copy
 import random
 from tqdm import tqdm
 
-from titan.mcts import Node, State
-from titan.mcts.chess_state import ChessState
+from titan.mcts.state import State
+from titan.mcts.node import Node
 
 
 def policy(node: Node) -> Node:
@@ -74,16 +73,3 @@ def mcts(state: State, n_rollouts: int = 250):
             node = node.parent
     
     return choose_move(root_node)
-
-
-if __name__ == "__main__":
-    # Initiate some board state.
-    state = ChessState(chess.Board())
-    
-    # Runs the Monte-Carlo Tree Search to predict the next move.
-    move = mcts(state)
-    
-    # Print results.
-    print("")
-    print("Predicted move : ", move)
-    print("")
