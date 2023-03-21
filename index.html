@@ -8,7 +8,7 @@
     
     <script src="static/jquery.min.js"></script>
     <script src="static/chessboard.js"></script>
-    <script src="static/chess.js"></script>
+    <script src="static/chess.min.js"></script>
     
 </head>
 
@@ -32,7 +32,7 @@
 
         function onDrop (source, target) {
             // Check if move is legal.
-            var move = board.move({from: source, to: target, promotion: 'q'});
+            var move = game.move({from: source, to: target, promotion: 'q'});
 
             // Illegal move is played.
             if (move === null) return 'snapback'
