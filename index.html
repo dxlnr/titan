@@ -18,10 +18,19 @@
     <button id="startBtn" style="margin: 8px">Reset Position</button>
     <button id="clearBtn" style="margin: 8px">Clear Board</button>
 
-    <!-- <p>Where is the board?</p> -->
+    <label></label>
+    <div id="status"></div>
+    <label></label>
+    <div id="fen"></div>
+    <label></label>
+    <div id="pgn"></div>
+
 
     <script type="text/javascript">
-        var game = new Chess();
+        var game = new Chess()
+        var $status = $('#status')
+        var $fen = $('#fen')
+        var $pgn = $('#pgn')
 
         var board = Chessboard('board', {
             position: 'start',
@@ -30,44 +39,75 @@
             onDrop: onDrop,
         });
 
-        function onDrop (source, target) {
+        function onDrop (source, target, piece, newPos) {
             // Check if move is legal.
-            var move = game.move({from: source, to: target, promotion: 'q'});
+            var gmove = game.move({from: source, to: target, promotion: 'q'});
 
             // Illegal move is played.
-            if (move === null) return 'snapback'
-            // updateStatus()
+            if (gmove === null) return 'snapback'
+
+            updateStatus()
+            
+            $.post('/get_move', { 'new_pos': game.fen() } );
+            
+            // Get an engine move as response.
+            getEngineMove()
         }
 
         function onDragStart (source, piece, position, orientation) {
-            // DO not pick up pieces if the game is over
-            // if (board.game_over()) return false
+            // Do not pick up pieces if the game is over
+            if (game.game_over()) return false
 
             // only pick up pieces for the side to move
-            if ((board.turn() === 'w' && piece.search(/^b/) !== -1) ||
-                (board.turn() === 'b' && piece.search(/^w/) !== -1)) {
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
                 return false
             }
         }
 
-        // function onDrop (source, target, piece, newPos, oldPos, orientation) {
-            // if(source == target) return
-            
-            // board.move("a2-a3");
-            // board.move({from: 'h1', to: 'f1', piece: 'wR'});
-            // if(piece == 'wK' && source == 'e1' && target == 'g1') {
-                // board.move({from: 'h1', to: 'f1', piece: 'wR'});
-                // return
-            // }
+        function onSnapEnd () {
+            board.position(game.fen())
+        }
 
-            // var pos = Chessboard.objToFen(newPos);
-            // $.post('/move', { 'new_pos': pos } );
+        function getEngineMove () {
+            $.get('/engine_move', function(r) {
+                game.move({ from: r.source, to: r.target })
+                board.position(game.fen())
 
-            // $.get('/engine_move', function(r) {
-                // board.move(r);
-            // }); 
+                updateStatus()
+            });
+        }
 
-        // }
+        function updateStatus () {
+            var status = ''
+
+            var moveColor = 'White'
+            if (game.turn() === 'b') {
+                moveColor = 'Black'
+            }
+
+            // checkmate?
+            if (game.in_checkmate()) {
+                status = 'Game over, ' + moveColor + ' is in checkmate.'
+            }
+            // draw?
+            else if (game.in_draw()) {
+                status = 'Game over, drawn position'
+            }
+            // game still on
+            else {
+                status = moveColor + ' to move'
+
+                // check?
+                if (game.in_check()) {
+                    status += ', ' + moveColor + ' is in check'
+                }
+            }
+
+            $status.html(status)
+            $fen.html(game.fen())
+            $pgn.html(game.pgn())
+        }
 
         
         $('#startBtn').on('click', board.start)

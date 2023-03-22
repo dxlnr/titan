@@ -7,11 +7,12 @@ from flask import Flask, request, jsonify
 from flask import render_template
 
 from titan.utils import get_project_root
-from titan.mcts import mcts 
+from titan.mcts import mcts
 from titan.mcts.chess_state import ChessState
 
 # Chess Engine Server
 app = Flask(__name__)
+
 
 def jmove(move: chess.Move) -> str:
     """Prepares Move object from python-chess for the ui."""
@@ -21,26 +22,25 @@ def jmove(move: chess.Move) -> str:
     return m[:2] + "-" + m[2:]
 
 
-@app.route("/move", methods=["GET", "POST"])
-def move():
+@app.route("/get_move", methods=["GET", "POST"])
+def get_move():
+    """Reads a move from input."""
     fen = request.form["new_pos"]
     s.state.set_fen(fen)
-    s.state.turn = not s.state.turn
-    
-    print(s.state.turn)
-    print(len(list(s.state.legal_moves)))
-    print(list(s.state.legal_moves))
+
     return jsonify(success=True)
 
 
 @app.route("/engine_move", methods=["GET"])
 def engine_move():
-    # print(list(s.state.legal_moves))
+    """Runs the model and returns a legal move."""
     move = mcts(s)
-    # test_move = "e7e5"
     s.state.push(chess.Move.from_uci(str(move)))
 
-    return jmove(move)
+    return {
+        "source": chess.square_name(move.from_square),
+        "target": chess.square_name(move.to_square),
+    }
 
 
 @app.route("/")
