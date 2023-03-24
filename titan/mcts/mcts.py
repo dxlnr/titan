@@ -33,12 +33,17 @@ def simulate_policy(state: State) -> State:
     return state
 
 
-def choose_move(node: Node, flag: str = "v") -> str:
+def choose_move(node: Node, flag: str = "") -> str:
     """."""
+    def score(n):
+        return n.w_k / n.n_k
+
     if flag == "v":
         from operator import attrgetter
-
+        
         cn = max(node.children, key=attrgetter("n_k"))
+    else:
+        cn = max(node.children, key=score)
 
     return cn.move
 

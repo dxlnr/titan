@@ -17,6 +17,7 @@
     <div id="board" style="width: 600px"></div>
     <button id="startBtn" style="margin: 8px">Reset Position</button>
     <button id="clearBtn" style="margin: 8px">Clear Board</button>
+    <button id="setRandomPosBtn">Random Position</button>
 
     <label></label>
     <div id="status"></div>
@@ -86,19 +87,14 @@
                 moveColor = 'Black'
             }
 
-            // checkmate?
             if (game.in_checkmate()) {
-                status = 'Game over, ' + moveColor + ' is in checkmate.'
+                status = 'Game over, ' + moveColor + ' is checkmated.'
             }
-            // draw?
             else if (game.in_draw()) {
-                status = 'Game over, drawn position'
+                status = 'Draw.'
             }
-            // game still on
             else {
                 status = moveColor + ' to move'
-
-                // check?
                 if (game.in_check()) {
                     status += ', ' + moveColor + ' is in check'
                 }
@@ -112,6 +108,10 @@
         
         $('#startBtn').on('click', board.start)
         $('#clearBtn').on('click', board.clear)
+        $('#setRandomPosBtn').on('click', function () {
+            board.position('K1B5/P2r4/1p1r1n2/4k3/8/3PPP2/8/8')
+            game = new Chess('K1B5/P2r4/1p1r1n2/4k3/8/3PPP2/8/8')
+        })
     </script>
 
 </body>

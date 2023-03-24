@@ -27,6 +27,7 @@ def get_move():
     """Reads a move from input."""
     fen = request.form["new_pos"]
     s.state.set_fen(fen)
+    print(list(s.state.legal_moves))
 
     return jsonify(success=True)
 
@@ -34,7 +35,7 @@ def get_move():
 @app.route("/engine_move", methods=["GET"])
 def engine_move():
     """Runs the model and returns a legal move."""
-    move = mcts(s)
+    move = mcts(s, 500)
     s.state.push(chess.Move.from_uci(str(move)))
 
     return {
