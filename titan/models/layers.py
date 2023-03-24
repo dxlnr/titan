@@ -6,6 +6,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def make_divisible(
+    v, divisor: int = 8, min_value: float = None, round_limit: float = 0.9
+):
+    """."""
+    min_value = min_value or divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+
+    if new_v < round_limit * v:
+        new_v += divisor
+    return new_v
+
+
 def get_padding(kernel: int, stride: int = 1, dilation: int = 1) -> int:
     """Calculate symmetric padding for a convolution."""
     pad = ((stride - 1) + dilation * (kernel - 1)) // 2
@@ -136,6 +148,68 @@ class PreActBottleneck(nn.Module):
         return x + identity
 
 
+class Residual(nn.Module):
+    """."""
+
+    def __init__(
+        self,
+        in_c,
+        out_c=None,
+        stride: int = 1,
+        dilation: int = 1,
+        first_dilation: int = None,
+        groups: int = 1,
+        act_layer=None,
+        conv_layer=None,
+        norm_layer=None,
+        proj_layer=None,
+        drop_path_rate=0.0,
+    ):
+        super().__init__()
+
+        first_dilation = first_dilation or dilation
+        conv_layer = conv_layer or StdConv2d
+        norm_layer = norm_layer or nn.BachNorm2d
+
+        out_c = out_c or in_c
+
+        if proj_layer is not None:
+            self.downsample = proj_layer(
+                in_c,
+                out_c,
+                stride=stride,
+                dilation=dilation,
+                first_dilation=first_dilation,
+                preact=True,
+                conv_layer=conv_layer,
+                norm_layer=norm_layer,
+            )
+        else:
+            self.downsample = None
+
+        self.norm1 = norm_layer(in_c)
+        self.conv1 = conv_layer(in_c, mid_c, 1)
+        self.norm2 = norm_layer(mid_c)
+        self.conv2 = conv_layer(
+            mid_c, mid_c, 3, stride=stride, dilation=first_dilation, groups=groups
+        )
+        self.relu = nn.ReLU()
+
+    def zero_init_last(self):
+        nn.init.zeros_(self.conv3.weight)
+
+    def forward(self, x):
+        # skip connection
+        identity = x
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        # residual branch
+        x = self.conv1(x)
+        x = self.conv2(self.norm2(x))
+        return self.relu(x + identity)
+
+
 class DownsampleAvg(nn.Module):
     """Average Downsampling Layer."""
 
@@ -170,60 +244,60 @@ class DownsampleAvg(nn.Module):
         return self.norm(self.conv(self.pool(x)))
 
 
-class ResNetStage(nn.Module):
-    """ResNet Stage."""
+# class ResNetStage(nn.Module):
+#     """ResNet Stage."""
 
-    def __init__(
-        self,
-        in_c,
-        out_c,
-        depth,
-        stride,
-        dilation,
-        bottle_ratio=0.25,
-        groups=1,
-        avg_down=False,
-        block_dpr=None,
-        block_fn=PreActBottleneck,
-        act_layer=None,
-        conv_layer=None,
-        norm_layer=None,
-        **block_kwargs,
-    ):
-        super(ResNetStage, self).__init__()
+#     def __init__(
+#         self,
+#         in_c,
+#         out_c,
+#         depth,
+#         stride,
+#         dilation,
+#         bottle_ratio=0.25,
+#         groups=1,
+#         avg_down=False,
+#         block_dpr=None,
+#         block_fn=PreActBottleneck,
+#         act_layer=None,
+#         conv_layer=None,
+#         norm_layer=None,
+#         **block_kwargs,
+#     ):
+#         super(ResNetStage, self).__init__()
 
-        first_dilation = 1 if dilation in (1, 2) else 2
-        layer_kwargs = dict(
-            act_layer=act_layer, conv_layer=conv_layer, norm_layer=norm_layer
-        )
-        proj_layer = DownsampleAvg if avg_down else DownsampleConv
-        prev_c = in_c
+#         first_dilation = 1 if dilation in (1, 2) else 2
+#         layer_kwargs = dict(
+#             act_layer=act_layer, conv_layer=conv_layer, norm_layer=norm_layer
+#         )
+#         proj_layer = DownsampleAvg if avg_down else DownsampleConv
+#         prev_c = in_c
 
-        self.blocks = nn.Sequential()
-        for idx in range(depth):
-            drop_path_rate = block_dpr[idx] if block_dpr else 0.0
-            stride = stride if idx == 0 else 1
+#         self.blocks = nn.Sequential()
+#         for idx in range(depth):
+#             drop_path_rate = block_dpr[idx] if block_dpr else 0.0
+#             stride = stride if idx == 0 else 1
 
-            self.blocks.add_module(
-                str(idx),
-                block_fn(
-                    prev_c,
-                    out_c,
-                    stride=stride,
-                    dilation=dilation,
-                    bottle_ratio=bottle_ratio,
-                    groups=groups,
-                    first_dilation=first_dilation,
-                    proj_layer=proj_layer,
-                    drop_path_rate=drop_path_rate,
-                    **layer_kwargs,
-                    **block_kwargs,
-                ),
-            )
-            prev_c = out_c
-            first_dilation = dilation
-            proj_layer = None
+#             self.blocks.add_module(
+#                 str(idx),
+#                 block_fn(
+#                     prev_c,
+#                     out_c,
+#                     stride=stride,
+#                     dilation=dilation,
+#                     bottle_ratio=bottle_ratio,
+#                     groups=groups,
+#                     first_dilation=first_dilation,
+#                     proj_layer=proj_layer,
+#                     drop_path_rate=drop_path_rate,
+#                     **layer_kwargs,
+#                     **block_kwargs,
+#                 ),
+#             )
+#             prev_c = out_c
+#             first_dilation = dilation
+#             proj_layer = None
 
-    def forward(self, x):
-        x = self.blocks(x)
-        return x
+#     def forward(self, x):
+#         x = self.blocks(x)
+#         return x

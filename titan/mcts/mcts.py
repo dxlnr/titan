@@ -35,12 +35,13 @@ def simulate_policy(state: State) -> State:
 
 def choose_move(node: Node, flag: str = "") -> str:
     """."""
+
     def score(n):
         return n.w_k / n.n_k
 
     if flag == "v":
         from operator import attrgetter
-        
+
         cn = max(node.children, key=attrgetter("n_k"))
     else:
         cn = max(node.children, key=score)
@@ -76,5 +77,5 @@ def mcts(state: State, n_rollouts: int = 250):
                 break
 
             node = node.parent
-    
+
     return choose_move(root_node)

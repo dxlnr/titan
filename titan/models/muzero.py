@@ -1,5 +1,8 @@
 """MuZero"""
 import torch
+import torch.nn as nn
+
+from titan.mcts.state import State
 
 
 class MuZero:
@@ -12,11 +15,23 @@ class MuZero:
         self.prediction = None
 
 
-def compute_repr():
-    """Representation function that encodes past observations. Embeddings space
-    without any particular semantics attached besides the support for future
-    prediction."""
-    pass
+class Representation(nn.Module):
+    def __init__(self):
+        self.emb = nn.Embeddings()
+
+    def forward(self, s):
+        pass
+
+
+def compute_repr(state: State):
+    """Representation function that encodes past observations.
+
+    Embeddings space without any particular semantics attached
+    besides the support for future prediction.
+    """
+    h = state
+
+    return h
 
 
 def compute_dynamics():
