@@ -44,7 +44,9 @@ class Chess(State):
         # Timesteps, history and current
         self.T, self.t = 8, 0
         # Representation of the board inputs which gets feeded to h (representation).
-        self.enc = torch.zeros([self.N, self.N, (self.M * self.T + self.L)])
+        self.enc_state = torch.zeros([self.N, self.N, (self.M * self.T + self.L)])
+        # Action representation
+        self.enc_action = torch.zeros([self.N, self.N, 73])
 
         self.c_w_epd = None
         self.c_b_epd = None
@@ -74,37 +76,37 @@ class Chess(State):
         board = self.encode_epd()
 
         # Roll over the tensor to inject the latest position from time step t.
-        self.enc = torch.roll(self.enc, -self.M, 2)
-        self.enc[:, :, ((self.T - 1) * self.M) :] = 0
+        self.enc_state = torch.roll(self.enc, -self.M, 2)
+        self.enc_state[:, :, ((self.T - 1) * self.M) :] = 0
 
         for i, r in enumerate(chunks(board, 8)):
             for j, c in enumerate(r):
                 if c is not None:
-                    self.enc[i, j, c + ((self.T - 1) * self.M)] = 1
+                    self.enc_state[i, j, c + ((self.T - 1) * self.M)] = 1
 
         # Repetitions for each side.
         if self.state.turn:
-            self.enc[:, :, 110] = self.w_repetitions
+            self.enc_state[:, :, 110] = self.w_repetitions
         else:
-            self.enc[:, :, 111] = self.b_repetitions
+            self.enc_state[:, :, 111] = self.b_repetitions
         # Color
         if self.state.turn == True:
-            self.enc[:, :, 112] = 1
+            self.enc_state[:, :, 112] = 1
         # Castling
         if self.state.has_kingside_castling_rights(chess.WHITE) == True:
-            self.enc[:, :, 113] = 1  # can castle kingside for white
+            self.enc_state[:, :, 113] = 1  # can castle kingside for white
         if self.state.has_queenside_castling_rights(chess.WHITE) == True:
-            self.enc[:, :, 114] = 1  # can castle queenside for white
+            self.enc_state[:, :, 114] = 1  # can castle queenside for white
         if self.state.has_kingside_castling_rights(chess.BLACK) == True:
-            self.enc[:, :, 115] = 1  # can castle kingside for black
+            self.enc_state[:, :, 115] = 1  # can castle kingside for black
         if self.state.has_queenside_castling_rights(chess.BLACK) == True:
-            self.enc[:, :, 116] = 1  # can castle queenside for black
+            self.enc_state[:, :, 116] = 1  # can castle queenside for black
         # Total Move Count
-        self.enc[:, :, 117] = self.state.ply()
+        self.enc_state[:, :, 117] = self.state.ply()
         # This denotes the progress count. Will be for now set to zero as
         # the history parameter T is only 8 so it is not possible to keep state
         # of the 50 move rule.
-        self.enc[:, :, 118] = self.no_progress_count
+        self.enc_state[:, :, 118] = self.no_progress_count
         #
         # self.enc[:, :, 119] = 1 if self.state.has_legal_en_passant() else 0
 
@@ -126,6 +128,31 @@ class Chess(State):
                         dec[counter] = k
                 counter += 1
         return dec
+
+    def encode_board_action():
+        """."""
+        board = self.encode_epd()
+
+        # i, j = initial_pos; x, y = final_pos; dx, dy = x-i, y-j
+
+        piece = board.current_board[i, j]
+        if piece in [
+            "R",
+            "B",
+            "Q",
+            "K",
+            "P",
+            "r",
+            "b",
+            "q",
+            "k",
+            "p",
+        ] and underpromote in [None, "queen"]:
+            pass
+        encoded[i, j, idx] = 1
+        encoded = encoded.reshape(-1)
+        encoded = np.where(encoded == 1)[0][0]  # index of action
+        return encoded
 
     def reset(self):
         """Resets game state and all its internal attributes."""

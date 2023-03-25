@@ -1,8 +1,9 @@
 """Self-Play Procedure"""
+from titan.config import Conf
 
 
 def run_selfplay(
-    config: MuZeroConfig, storage: SharedStorage, replay_buffer: ReplayBuffer
+    config: Conf, storage: SharedStorage, replay_buffer: ReplayBuffer
 ):
     while True:
         network = storage.latest_network()
