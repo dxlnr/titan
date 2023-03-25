@@ -44,7 +44,7 @@ class Chess(State):
         # Timesteps, history and current
         self.T, self.t = 8, 0
         # Representation of the board inputs which gets feeded to h (representation).
-        self.enc = torch.zeros([self.N, self.N, (self.M * self.T + self.L + 1)])
+        self.enc = torch.zeros([self.N, self.N, (self.M * self.T + self.L)])
 
         self.c_w_epd = None
         self.c_b_epd = None
@@ -82,6 +82,12 @@ class Chess(State):
                 if c is not None:
                     self.enc[i, j, c + ((self.T - 1) * self.M)] = 1
 
+        # Repetitions for each side.
+        if self.state.turn:
+            self.enc[:, :, 110] = self.w_repetitions
+        else:
+            self.enc[:, :, 111] = self.b_repetitions
+        # Color
         if self.state.turn == True:
             self.enc[:, :, 112] = 1
         # Castling
@@ -93,13 +99,14 @@ class Chess(State):
             self.enc[:, :, 115] = 1  # can castle kingside for black
         if self.state.has_queenside_castling_rights(chess.BLACK) == True:
             self.enc[:, :, 116] = 1  # can castle queenside for black
-
+        # Total Move Count
         self.enc[:, :, 117] = self.state.ply()
         # This denotes the progress count. Will be for now set to zero as
         # the history parameter T is only 8 so it is not possible to keep state
         # of the 50 move rule.
         self.enc[:, :, 118] = self.no_progress_count
-        self.enc[:, :, 119] = 1 if self.state.has_legal_en_passant() else 0
+        #
+        # self.enc[:, :, 119] = 1 if self.state.has_legal_en_passant() else 0
 
     def decode_board_state(self, timestep: int = 0):
         """."""
