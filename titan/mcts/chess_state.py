@@ -46,7 +46,13 @@ class Chess(State):
         # Representation of the board inputs which gets feeded to h (representation).
         self.enc = torch.zeros([self.N, self.N, (self.M * self.T + self.L + 1)])
 
-    def convert_epd(self) -> list:
+        self.c_w_epd = None
+        self.c_b_epd = None
+        self.w_repetitions = 0
+        self.b_repetitions = 0
+        self.no_progress_count = 0
+
+    def encode_epd(self) -> list:
         """Convert an edp notation to a list representing a board state."""
         res = list()
         for c in self.state.epd():
@@ -59,13 +65,18 @@ class Chess(State):
                     [res.append(None) for counter in range(int(c))]
         return res
 
+    def decode_to_epd(self) -> str:
+        """Decodes the current board state back to an edp notation."""
+        pass
+
     def encode_board_state(self) -> torch.Tensor:
         """Encodes the board state according to MuZero paper."""
-        # self.enc = torch.zeros([self.N, self.N, (self.M * self.T + self.L + 1)])
-        board = self.convert_epd()
+        board = self.encode_epd()
 
-        # Throw out the position that is older than T steps.
-        torch.roll(self.enc, self.M, 2)
+        # Roll over the tensor to inject the latest position from time step t.
+        self.enc = torch.roll(self.enc, -self.M, 2)
+        self.enc[:, :, ((self.T - 1) * self.M) :] = 0
+
         for i, r in enumerate(chunks(board, 8)):
             for j, c in enumerate(r):
                 if c is not None:
@@ -83,20 +94,23 @@ class Chess(State):
         if self.state.has_queenside_castling_rights(chess.BLACK) == True:
             self.enc[:, :, 116] = 1  # can castle queenside for black
 
-        self.enc[:, :, 117] = self.state.fullmove_number
-        # enc[:, :, 20] = board.no_progress_count
+        self.enc[:, :, 117] = self.state.ply()
+        # This denotes the progress count. Will be for now set to zero as
+        # the history parameter T is only 8 so it is not possible to keep state
+        # of the 50 move rule.
+        self.enc[:, :, 118] = self.no_progress_count
         self.enc[:, :, 119] = 1 if self.state.has_legal_en_passant() else 0
 
     def decode_board_state(self, timestep: int = 0):
         """."""
-        assert timestep <= self.t, f"Input timestep {timestep} is in the future." 
+        assert timestep <= self.t, f"Input timestep {timestep} is in the future."
         # Define the offset.
-        offset = self.t - timestep 
-        assert offset < 7, f"Timestep lies too far in the past."
+        offset = self.t - timestep
+        assert offset <= 7, f"Timestep lies too far in the past."
 
         dec = [None] * self.N**2
-        inv_map = {v: k for k, v in self.MAP.items()} 
-        
+        inv_map = {v: k for k, v in self.MAP.items()}
+
         counter = 0
         for i in range(self.N):
             for j in range(self.N):
@@ -105,7 +119,11 @@ class Chess(State):
                         dec[counter] = k
                 counter += 1
         return dec
-    
+
+    def reset(self):
+        """Resets game state and all its internal attributes."""
+        pass
+
     def get_possible_moves(self) -> list:
         return list(self.state.legal_moves)
 
@@ -114,7 +132,29 @@ class Chess(State):
 
     def update(self, move: str) -> None:
         """Updates the board with a specfic move."""
+        # Sets the current game state before updating it.
+        if self.state.turn:
+            self.c_w_epd = self.state.epd()
+        else:
+            self.c_b_epd = self.state.epd()
+
+        # Update the board state with new move.
         self.state.push(chess.Move.from_uci(str(move)))
+
+        # Count up if repetition happend.
+        if self.state.turn:
+            self.w_repetitions = (
+                self.w_repetitions + 1 if self.c_w_epd == self.state.epd() else 0
+            )
+        else:
+            self.b_repetitions = (
+                self.b_repetitions + 1 if self.c_b_epd == self.state.epd() else 0
+            )
+
+        # Update internal timestep
+        self.t = self.t + 1
+        # Encode with latest board state.
+        self.encode_board_state()
 
     def random_upd(self) -> None:
         """Finds a random move and updates the board."""
