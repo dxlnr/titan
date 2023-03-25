@@ -17,8 +17,13 @@ if __name__ == "__main__":
     state = Chess(chess.Board())
     s = state.convert_epd() 
     print(s)
-    state.encode_board()
- 
+    state.encode_board_state()
+    
+    print(state.enc.shape)
+
+    dec = state.decode_board_state()
+    print("")
+    print(dec)
     # h = compute_repr(state)
 
     # print(h)
