@@ -1,3 +1,3 @@
-from .mcts import mcts
+from .mcts import run_mcts
 
-__all__ = ["mcts"]
+__all__ = ["run_mcts"]

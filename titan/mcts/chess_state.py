@@ -52,6 +52,9 @@ class Chess(State):
         self.b_repetitions = 0
         self.no_progress_count = 0
 
+        # Add the initial position as encoded board state.
+        self.encode_board_state()
+
     def encode_epd(self) -> list:
         """Convert an edp notation to a list representing a board state."""
         res = list()
@@ -153,7 +156,11 @@ class Chess(State):
         """Resets game state and all its internal attributes."""
         pass
 
-    def get_possible_moves(self) -> list:
+    def get_observation(self) -> torch.Tensor:
+        """Returns the observation tensor."""
+        return self.enc_state
+
+    def get_legal_actions(self) -> list:
         return list(self.state.legal_moves)
 
     def is_terminal(self) -> bool:

@@ -20,9 +20,13 @@ class Node:
         :param state: State attached to this specific node.
         """
         if not state.is_terminal():
-            for m in state.get_possible_moves():
+            for m in state.get_legal_actions():
                 c_node = Node(m, self)
                 self.children.append(c_node)
+
+    def add_exploration_noise(self, dirichlet_alpha, exploration_fraction):
+        """."""
+        pass
 
     def is_leaf_node(self) -> bool:
         """Returns True if the node is a leaf node."""
@@ -45,3 +49,6 @@ class Node:
         return (self.w_k / self.n_k) + 2 * math.sqrt(
             (math.log(self.parent.n_k) / self.n_k)
         )
+
+    def value(self):
+        pass

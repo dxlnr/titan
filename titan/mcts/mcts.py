@@ -3,8 +3,10 @@ import copy
 import random
 from tqdm import tqdm
 
+from titan.config import Conf
 from titan.mcts.state import State
 from titan.mcts.node import Node
+from titan.models import M0Net
 
 
 def policy(node: Node) -> Node:
@@ -33,13 +35,13 @@ def simulate_policy(state: State) -> State:
     return state
 
 
-def choose_move(node: Node, flag: str = "") -> str:
+def select_action(node: Node, temperature: float = 0) -> str:
     """."""
 
     def score(n):
         return n.w_k / n.n_k
 
-    if flag == "v":
+    if temperature == 0:
         from operator import attrgetter
 
         cn = max(node.children, key=attrgetter("n_k"))
@@ -49,16 +51,28 @@ def choose_move(node: Node, flag: str = "") -> str:
     return cn.move
 
 
-def mcts(state: State, n_rollouts: int = 250):
+def run_mcts(
+    config: Conf,
+    state: State,
+    model: M0Net,
+    add_exploration_noise=False,
+):
     """Runs the Monte-Carlo Tree Search."""
     root_node = Node()
-    for i in tqdm(range(n_rollouts)):
+
+    if add_exploration_noise:
+        root_node.add_exploration_noise(
+            dirichlet_alpha=config.ROOT_DIRICHLET_ALPHA,
+            exploration_fraction=config.ROOT_EXPLORATION_FRACTION,
+        )
+
+    for i in tqdm(range(config.NUM_ROLLOUTS)):
         node, s = root_node, copy.deepcopy(state)
 
-        # (1) Select
-        while not node.is_leaf_node():
-            node = policy(node)
-            s.update(str(node.move))
+        # # (1) Select
+        # while not node.is_leaf_node():
+        #     node = policy(node)
+        #     s.update(str(node.move))
 
         # (2) Expand
         node.expand(s)
@@ -78,4 +92,5 @@ def mcts(state: State, n_rollouts: int = 250):
 
             node = node.parent
 
-    return choose_move(root_node)
+    # return choose_move(root_node)
+    return root_node

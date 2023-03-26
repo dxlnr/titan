@@ -14,7 +14,7 @@ class ReprNet(nn.Module):
         c_out,
         depth=16,
         stride=1,
-        dilation = 1,
+        dilation=1,
         groups=1,
         block_fn=Residual,
         act_layer=nn.ReLU,

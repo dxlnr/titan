@@ -2,6 +2,8 @@
 from typing import Any
 from abc import ABC, abstractmethod
 
+import torch
+
 
 class State(ABC):
     @abstractmethod
@@ -20,6 +22,11 @@ class State(ABC):
         return NotImplemented
 
     @abstractmethod
-    def get_possible_moves(self) -> list:
+    def get_legal_actions(self) -> list:
         """Returns a list of possible future steps from the current state."""
+        return NotImplemented
+
+    @abstractmethod
+    def get_observation(self) -> torch.Tensor:
+        """Returns the observation tensor."""
         return NotImplemented

@@ -15,7 +15,9 @@ class M0Net(nn.Module):
         self.cfg = cfg
 
         # Representation function that encodes past observations.
-        self.repr_network = ReprNet(self.cfg.OBSERVATION_SHAPE[2], self.cfg.CHANNELS, self.cfg.DEPTH)
+        self.repr_network = ReprNet(
+            self.cfg.OBSERVATION_SHAPE[2], self.cfg.CHANNELS, self.cfg.DEPTH
+        )
         #
         self.dyn_network = None
         #
