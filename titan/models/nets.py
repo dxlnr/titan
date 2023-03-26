@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 
-from titan.models.layers import Conv2d, Residual
+from titan.models.layers import StdConv2d, Residual
 
 
 class ReprNet(nn.Module):

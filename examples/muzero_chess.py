@@ -9,7 +9,7 @@ import chess
 
 from titan.mcts import mcts
 from titan.mcts.chess_state import Chess
-from titan.models.muzero import compute_repr
+# from titan.models.muzero import compute_repr
 
 
 if __name__ == "__main__":
@@ -40,6 +40,14 @@ if __name__ == "__main__":
     print(dec3)
     print("")
     print(dec7)
+
+    print("")
+    print(state.state.legal_moves)
+    print(list(state.state.legal_moves)[0].from_square)
+    m = list(state.state.legal_moves)[0]
+    print(type(m))
+    print(m)
+    state.encode_board_action(m)
     # h = compute_repr(state)
 
     # print(h)

@@ -45,8 +45,6 @@ class Chess(State):
         self.T, self.t = 8, 0
         # Representation of the board inputs which gets feeded to h (representation).
         self.enc_state = torch.zeros([self.N, self.N, (self.M * self.T + self.L)])
-        # Action representation
-        self.enc_action = torch.zeros([self.N, self.N, 73])
 
         self.c_w_epd = None
         self.c_b_epd = None
@@ -76,7 +74,7 @@ class Chess(State):
         board = self.encode_epd()
 
         # Roll over the tensor to inject the latest position from time step t.
-        self.enc_state = torch.roll(self.enc, -self.M, 2)
+        self.enc_state = torch.roll(self.enc_state, -self.M, 2)
         self.enc_state[:, :, ((self.T - 1) * self.M) :] = 0
 
         for i, r in enumerate(chunks(board, 8)):
@@ -124,35 +122,32 @@ class Chess(State):
         for i in range(self.N):
             for j in range(self.N):
                 for k in range(self.M - 2):
-                    if self.enc[i, j, k + ((self.T - 1 - offset) * self.M)] == 1:
+                    if self.enc_state[i, j, k + ((self.T - 1 - offset) * self.M)] == 1:
                         dec[counter] = k
                 counter += 1
         return dec
 
-    def encode_board_action():
+    def encode_board_action(self, move: chess.Move):
         """."""
-        board = self.encode_epd()
+        # Action representation
+        enc_action = torch.zeros([self.N, self.N, 8])
+        # Get index from move square.
+        s_i, s_j = divmod(move.from_square, self.N)
+        t_i, t_j = divmod(move.to_square, self.N)
 
-        # i, j = initial_pos; x, y = final_pos; dx, dy = x-i, y-j
+        # Position the piece was moved from.
+        enc_action[s_i, s_j, 0] = 1
+        # Position the piece was moved to.
+        enc_action[t_i, t_j, 1] = 1
+        # If the move was legal
+        enc_action[:, :, 2] = 1
+        # Promotion encodings.
+        if move.promotion:
+            enc_action[:, :, (move.promotion.piece_type + 1)] = 1
+        else:
+            enc_action[:, :, 7] = 1
 
-        piece = board.current_board[i, j]
-        if piece in [
-            "R",
-            "B",
-            "Q",
-            "K",
-            "P",
-            "r",
-            "b",
-            "q",
-            "k",
-            "p",
-        ] and underpromote in [None, "queen"]:
-            pass
-        encoded[i, j, idx] = 1
-        encoded = encoded.reshape(-1)
-        encoded = np.where(encoded == 1)[0][0]  # index of action
-        return encoded
+        return enc_action
 
     def reset(self):
         """Resets game state and all its internal attributes."""
