@@ -60,52 +60,116 @@ class ReprNet(nn.Module):
         return x
 
 
-class PolicyNet(nn.Module):
-    def __init__(self, block, layers, **kwargs):
+class PredictionNet(nn.Module):
+    """."""
+
+    def __init__(
+        self,
+        c_in,
+        depth,
+        reduced_c_value,
+        reduced_c_policy,
+        fc_value_layers,
+        fc_policy_layers,
+        full_support_size,
+        block_output_value,
+        block_output_policy,
+        **kwargs
+    ):
         super(PolicyNet, self).__init__()
 
-        self.head = self._make_head()
+        self.block_output_value = block_output_value
+        self.block_output_policy = block_output_policy
 
-        # Initialize the weights.
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
-            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+        self._make_head()
+        self.blocks = nn.Sequential()
+
+        c_out = c_in
+        for idx in range(depth):
+            self.blocks.add_module(
+                str(idx),
+                block_fn(
+                    c_in,
+                    c_out,
+                ),
+            )
 
     def _make_head(self):
-        return nn.Sequential(
-            nn.Conv2d(
-                in_c,
-                out_c,
-                kernel,
-                stride,
-                autopad(kernel, pad),
-                groups=groups,
-                bias=False,
-            ),
-            nn.BatchNorm2d(out_c),
-            nn.ReLU(),
-            nn.Linear(512 * block.expansion, 19 * 19),
+        self.conv_value = nn.Conv2d(c_in, reduced_c_value, 1)
+        self.conv_policy = nn.Conv2d(c_in, reduced_c_policy, 1)
+
+        self.fc_value = mlp(self.block_output_value, fc_value_layers, full_support_size)
+        self.fc_policy = mlp(
+            self.block_output_policy,
+            fc_policy_layers,
+            action_space_size,
         )
 
     def forward(self):
-        self.head(x)
+        x = self.block(x)
+
+        value = self.conv_value(x)
+        policy = self.conv_policy(x)
+
+        value = value.view(-1, self.block_output_value)
+        policy = policy.view(-1, self.block_output_policy)
+
+        value = self.fc_value(value)
+        policy = self.fc_policy(policy)
+        return policy, value
 
 
-def build_policy_network(block, layers, pretrained: bool = False, **kwargs):
-    """."""
-    model = PolicyNet(block, layers, **kwargs)
+# def build_prediction_network(pretrained: bool = False, **kwargs):
+#     """."""
+#     model = PredictionNet(block, layers, **kwargs)
 
-    if pretrained:
-        model.load_state_dict(state_dict)
-    return model
+#     if pretrained:
+#         model.load_state_dict(state_dict)
+#     return model
 
 
-class ValueNet(nn.Module):
-    def __init__(self):
-        pass
+class DynamicsNet(nn.Module):
+    def __init__(
+        self,
+        in_c,
+        depth,
+        reduced_c_rewards,
+        fc_reward_layers,
+        full_support_size,
+        block_output_reward,
+    ):
+        super().__init__()
+        # self.conv = conv3x3(num_channels, num_channels - 1)
+        self.conv = StdConv2d(in_c, in_c - 1)
+        self.bn = nn.BatchNorm2d(in_c - 1)
 
-    def forward(self):
-        pass
+        self.blocks = nn.Sequential()
+        for idx in range(depth):
+            self.blocks.add_module(
+                str(idx),
+                block_fn(
+                    c_in,
+                    c_out,
+                ),
+            )
+
+        self.conv_reward = nn.Conv2d(in_c - 1, reduced_c_reward, 1)
+        self.block_output_reward = block_output_reward
+
+        self.fc = mlp(
+            self.block_output_reward,
+            fc_reward_layers,
+            full_support_size,
+        )
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = nn.functional.relu(x)
+
+        x = self.block(x)
+        state = x
+        x = self.conv_reward(x)
+        x = x.view(-1, self.block_output_reward)
+        reward = self.fc(x)
+        return state, reward
