@@ -1,19 +1,40 @@
 """MuZero Configurations"""
+from typing import Tuple
 from dataclasses import dataclass
 
 
 @dataclass
 class Conf:
-    SIZE_ACTION_SPACE: int = 100
-    NUM_ACTORS: int = 2
+    """Defining default params.
 
-    VISIT_SOFTMAX_TEMPERATURE_FN
+    :param NUM_ACTORS: Number of players in the game.
+    :param OBSERVATION_SHAPE: Dimensions of the game observation, must be 3D (height, width, channel).
+    :param SIZE_ACTION_SPACE: Defines the dimension of the action space.
+        In chess, 8 planes are used to encode the action. 
+        The first one-hot plane encodes which position the piece was moved from. 
+        The next two planes encode which position the piece was moved to: 
+            A one-hot plane to encode the target position, if on the board, 
+            and a second binary plane to indicate whether the target was valid (on the board) or not. 
+        The remaining five binary planes are used to indicate the type of promotion, 
+        if any (queen, knight, bishop, rook, none).
+    
+    """
+    # GAME
+    NUM_ACTORS: int = 2
+    OBSERVATION_SHAPE: Tuple[int] = (8, 8, 119)          
+    SIZE_ACTION_SPACE: int = 8
+
+    # MODEL 
+    CHANNELS: int = 256 
+    DEPTH: int = 16
+
+    # VISIT_SOFTMAX_TEMPERATURE_FN
     MAX_MOVES: int = 1000
     NUM_SIMULATIONS: int = 1000
     DISCOUNT: float = 0.0
 
     # Root prior exploration noise.
-    ROOT_DIRICHLET_ALPHA
+    # ROOT_DIRICHLET_ALPHA
     ROOT_EXPLORATION_FRACTION: float = 0.25
 
     # UCB formula
@@ -24,7 +45,7 @@ class Conf:
     # environment, we can use them to initialize the rescaling.
     # This is not strictly necessary, but establishes identical behaviour to
     # AlphaZero in board games.
-    KNOWN_BOUNDS
+    # KNOWN_BOUNDS
 
     ### Training
     TRAINING_STEPS: int = int(1e6)

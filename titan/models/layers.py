@@ -35,7 +35,7 @@ class StdConv2d(nn.Conv2d):
         self,
         in_c: int,
         out_c: int,
-        kernel: int,
+        kernel: int = 3,
         stride: int = 1,
         pad: int = None,
         dilation: int = 1,
@@ -46,9 +46,9 @@ class StdConv2d(nn.Conv2d):
         if pad is None:
             pad = get_padding(kernel, stride, dilation)
         super().__init__(
-            in_channel,
-            out_channels,
-            kernel_size,
+            in_c,
+            out_c,
+            kernel_size=kernel,
             stride=stride,
             padding=pad,
             dilation=dilation,
@@ -169,7 +169,7 @@ class Residual(nn.Module):
 
         first_dilation = first_dilation or dilation
         conv_layer = conv_layer or StdConv2d
-        norm_layer = norm_layer or nn.BachNorm2d
+        norm_layer = norm_layer or nn.BatchNorm2d
 
         out_c = out_c or in_c
 
@@ -188,15 +188,12 @@ class Residual(nn.Module):
             self.downsample = None
 
         self.norm1 = norm_layer(in_c)
-        self.conv1 = conv_layer(in_c, mid_c, 1)
-        self.norm2 = norm_layer(mid_c)
+        self.conv1 = conv_layer(in_c, out_c, 1)
+        self.norm2 = norm_layer(out_c)
         self.conv2 = conv_layer(
-            mid_c, mid_c, 3, stride=stride, dilation=first_dilation, groups=groups
+            out_c, out_c, 3, stride=stride, dilation=first_dilation, groups=groups
         )
         self.relu = nn.ReLU()
-
-    def zero_init_last(self):
-        nn.init.zeros_(self.conv3.weight)
 
     def forward(self, x):
         # skip connection

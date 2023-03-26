@@ -13,22 +13,27 @@ class ReprNet(nn.Module):
         c_in,
         c_out,
         depth=16,
+        stride=1,
+        dilation = 1,
+        groups=1,
         block_fn=Residual,
         act_layer=nn.ReLU,
         conv_layer=None,
         norm_layer=None,
-        **kwargs
+        **block_kwargs
     ):
         super(ReprNet, self).__init__()
 
         layer_kwargs = dict(
             act_layer=act_layer, conv_layer=conv_layer, norm_layer=norm_layer
         )
+        first_dilation = 1 if dilation in (1, 2) else 2
 
         self.act_layer = act_layer
-        self.conv = Conv2d()
+        self.conv = StdConv2d(c_in, c_out)
         self.blocks = nn.Sequential()
 
+        c_prev = c_in
         for idx in range(depth):
             # drop_path_rate = block_dpr[idx] if block_dpr else 0.0
             stride = stride if idx == 0 else 1
@@ -36,8 +41,8 @@ class ReprNet(nn.Module):
             self.blocks.add_module(
                 str(idx),
                 block_fn(
-                    prev_c,
-                    out_c,
+                    c_prev,
+                    c_out,
                     stride=stride,
                     dilation=dilation,
                     first_dilation=first_dilation,
@@ -46,7 +51,7 @@ class ReprNet(nn.Module):
                     **block_kwargs,
                 ),
             )
-            prev_c = out_c
+            c_prev = c_out
             first_dilation = dilation
 
     def forward(self, x):

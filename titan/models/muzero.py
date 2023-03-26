@@ -1,22 +1,27 @@
-"""MuZero"""
+"""MuZero Network"""
 import torch
 import torch.nn as nn
 
+from titan.config import Conf
 from titan.mcts.state import State
 from titan.models.nets import ReprNet
 
 
-class MuZeroNet(nn.Module):
+class M0Net(nn.Module):
     """MuZero Network Architecture"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, cfg: Conf):
+        super(M0Net, self).__init__()
+        self.cfg = cfg
+
         # Representation function that encodes past observations.
-        self.repr_network = ReprNet()
+        self.repr_network = ReprNet(self.cfg.OBSERVATION_SHAPE[2], self.cfg.CHANNELS, self.cfg.DEPTH)
         #
         self.dyn_network = None
         #
         self.prediction_network = None
+
+        self.full_support_size = 10
 
     def representation(self, obs):
         """."""

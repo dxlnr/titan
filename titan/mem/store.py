@@ -1,18 +1,21 @@
 """Shared Storage"""
+from titan.config import Conf
+from titan.models import M0Net
 
 
 class SharedStorage:
     """Network Wrapper."""
 
-    def __init__(self):
-        self._networks = {}
+    def __init__(self, config: Conf):
+        self._model = M0Net(config)
 
-    def latest_network(self) -> Network:
+    def get_latest_model(self) -> M0Net:
         if self._networks:
             return self._networks[max(self._networks.keys())]
         else:
+            pass
             # policy -> uniform, value -> 0, reward -> 0
-            return make_uniform_network()
+            # return make_uniform_network()
 
-    def save_network(self, step: int, network: Network):
+    def save_network(self, step: int, network: M0Net):
         self._networks[step] = network
