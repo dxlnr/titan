@@ -31,7 +31,7 @@ def mlp(
     output_activation=torch.nn.Identity,
     activation=torch.nn.ELU,
 ):
-    """."""
+    """Basic Multi-Layer Perceptron Architecture."""
     sizes = [input_size] + layer_sizes + [output_size]
     layers = []
     for i in range(len(sizes) - 1):

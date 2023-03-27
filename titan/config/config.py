@@ -18,16 +18,25 @@ class Conf:
         The remaining five binary planes are used to indicate the type of promotion,
         if any (queen, knight, bishop, rook, none).
 
+    :param CHANNELS:
     """
 
     # GAME
     NUM_ACTORS: int = 2
     OBSERVATION_SHAPE: Tuple[int] = (8, 8, 119)
-    SIZE_ACTION_SPACE: int = 8
+    ACTION_SPACE: int = 8
 
     # MODEL
     CHANNELS: int = 256
     DEPTH: int = 16
+    REDUCED_C_REWARD: int = 256
+    REDUCED_C_VALUE: int = 256
+    REDUCED_C_POLICY: int = 256
+    RESNET_FC_REWARD_LAYERS: Tuple[int] = (256, 256)
+    RESNET_FC_VALUE_LAYERS: Tuple[int] = (256, 256)
+    RESNET_FC_POLICY_LAYERS: Tuple[int] = (256, 256)
+
+    SUPPORT_SIZE: int = 10
 
     # VISIT_SOFTMAX_TEMPERATURE_FN
     MAX_MOVES: int = 1000
@@ -35,7 +44,7 @@ class Conf:
     DISCOUNT: float = 0.0
 
     # Root prior exploration noise.
-    # ROOT_DIRICHLET_ALPHA
+    ROOT_DIRICHLET_ALPHA: float = 0.25
     ROOT_EXPLORATION_FRACTION: float = 0.25
 
     # UCB formula

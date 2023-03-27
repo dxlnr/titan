@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 
-from titan.models.layers import StdConv2d, Residual
+from titan.models.layers import mlp, StdConv2d, Residual
 
 
 class ReprNet(nn.Module):
@@ -67,6 +67,7 @@ class PredictionNet(nn.Module):
         self,
         c_in,
         depth,
+        action_space,
         reduced_c_value,
         reduced_c_policy,
         fc_value_layers,
@@ -74,74 +75,75 @@ class PredictionNet(nn.Module):
         full_support_size,
         block_output_value,
         block_output_policy,
+        block_fn=Residual,
         **kwargs
     ):
-        super(PolicyNet, self).__init__()
+        super(PredictionNet, self).__init__()
 
+        # Network Parameter
+        self.c_in = c_in
+        self.action_space = action_space
+        self.reduced_c_value = reduced_c_value
+        self.reduced_c_policy = reduced_c_policy
+        self.fc_value_layers = list(fc_value_layers)
+        self.fc_policy_layers = list(fc_policy_layers)
+        self.full_support_size = full_support_size
         self.block_output_value = block_output_value
         self.block_output_policy = block_output_policy
 
+        # Prediction Head
         self._make_head()
+        # Residual Blocks
         self.blocks = nn.Sequential()
-
-        c_out = c_in
         for idx in range(depth):
             self.blocks.add_module(
                 str(idx),
                 block_fn(
                     c_in,
-                    c_out,
+                    c_in,
                 ),
             )
 
     def _make_head(self):
-        self.conv_value = nn.Conv2d(c_in, reduced_c_value, 1)
-        self.conv_policy = nn.Conv2d(c_in, reduced_c_policy, 1)
+        """."""
+        self.conv_value = nn.Conv2d(self.c_in, self.reduced_c_value, 1)
+        self.conv_policy = nn.Conv2d(self.c_in, self.reduced_c_policy, 1)
 
-        self.fc_value = mlp(self.block_output_value, fc_value_layers, full_support_size)
+        self.fc_value = mlp(
+            self.block_output_value, self.fc_value_layers, self.full_support_size
+        )
         self.fc_policy = mlp(
             self.block_output_policy,
-            fc_policy_layers,
-            action_space_size,
+            self.fc_policy_layers,
+            self.action_space,
         )
 
     def forward(self):
         x = self.block(x)
-
         value = self.conv_value(x)
         policy = self.conv_policy(x)
-
         value = value.view(-1, self.block_output_value)
         policy = policy.view(-1, self.block_output_policy)
-
         value = self.fc_value(value)
         policy = self.fc_policy(policy)
         return policy, value
 
 
-# def build_prediction_network(pretrained: bool = False, **kwargs):
-#     """."""
-#     model = PredictionNet(block, layers, **kwargs)
-
-#     if pretrained:
-#         model.load_state_dict(state_dict)
-#     return model
-
-
 class DynamicsNet(nn.Module):
     def __init__(
         self,
-        in_c,
+        c_in,
         depth,
         reduced_c_rewards,
         fc_reward_layers,
         full_support_size,
         block_output_reward,
+        block_fn=Residual,
     ):
         super().__init__()
         # self.conv = conv3x3(num_channels, num_channels - 1)
-        self.conv = StdConv2d(in_c, in_c - 1)
-        self.bn = nn.BatchNorm2d(in_c - 1)
+        self.conv = StdConv2d(c_in, c_in - 1)
+        self.bn = nn.BatchNorm2d(c_in - 1)
 
         self.blocks = nn.Sequential()
         for idx in range(depth):
@@ -149,16 +151,16 @@ class DynamicsNet(nn.Module):
                 str(idx),
                 block_fn(
                     c_in,
-                    c_out,
+                    c_in,
                 ),
             )
 
-        self.conv_reward = nn.Conv2d(in_c - 1, reduced_c_reward, 1)
+        self.conv_reward = nn.Conv2d(c_in - 1, reduced_c_rewards, 1)
         self.block_output_reward = block_output_reward
 
         self.fc = mlp(
             self.block_output_reward,
-            fc_reward_layers,
+            list(fc_reward_layers),
             full_support_size,
         )
 
@@ -173,3 +175,11 @@ class DynamicsNet(nn.Module):
         x = x.view(-1, self.block_output_reward)
         reward = self.fc(x)
         return state, reward
+
+
+# def build_prediction_network(pretrained: bool = False, **kwargs):
+#     """."""
+#     model = PredictionNet(block, layers, **kwargs)
+
+#     if pretrained:
+#         model.load_state_dict(state_dict)

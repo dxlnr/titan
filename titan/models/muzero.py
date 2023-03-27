@@ -4,24 +4,85 @@ import torch.nn as nn
 
 from titan.config import Conf
 from titan.mcts.state import State
-from titan.models.nets import ReprNet
+from titan.models.nets import DynamicsNet, PredictionNet, ReprNet
 
 
 class M0Net(nn.Module):
-    """MuZero Network Architecture"""
+    """MuZero Network Architecture."""
 
     def __init__(self, cfg: Conf):
         super(M0Net, self).__init__()
         self.cfg = cfg
 
+        downsample = False
+        self.full_support_size = 2 * self.cfg.SUPPORT_SIZE + 1
+        self.block_output_size_reward = (
+            (
+                self.cfg.REDUCED_C_REWARD
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[0] / 16)
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[1] / 16)
+            )
+            if downsample
+            else (
+                self.cfg.REDUCED_C_REWARD
+                * self.cfg.OBSERVATION_SHAPE[0]
+                * self.cfg.OBSERVATION_SHAPE[1]
+            )
+        )
+
+        self.block_output_size_value = (
+            (
+                self.cfg.REDUCED_C_VALUE
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[0] / 16)
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[1] / 16)
+            )
+            if downsample
+            else (
+                self.cfg.REDUCED_C_VALUE
+                * self.cfg.OBSERVATION_SHAPE[0]
+                * self.cfg.OBSERVATION_SHAPE[1]
+            )
+        )
+
+        self.block_output_size_policy = (
+            (
+                self.cfg.REDUCED_C_POLICY
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[0] / 16)
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[1] / 16)
+            )
+            if downsample
+            else (
+                self.cfg.REDUCED_C_POLICY
+                * self.cfg.OBSERVATION_SHAPE[0]
+                * self.cfg.OBSERVATION_SHAPE[1]
+            )
+        )
         # Representation function that encodes past observations.
         self.repr_network = ReprNet(
             self.cfg.OBSERVATION_SHAPE[2], self.cfg.CHANNELS, self.cfg.DEPTH
         )
         #
-        self.dyn_network = None
+        self.dyn_network = DynamicsNet(
+            self.cfg.CHANNELS,
+            self.cfg.DEPTH,
+            self.cfg.REDUCED_C_REWARD,
+            self.cfg.RESNET_FC_REWARD_LAYERS,
+            self.full_support_size,
+            self.block_output_size_reward,
+        )
         #
-        self.prediction_network = None
+        self.prediction_network = PredictionNet(
+            self.cfg.CHANNELS,
+            self.cfg.DEPTH,
+            self.cfg.ACTION_SPACE,
+            self.cfg.REDUCED_C_VALUE,
+            self.cfg.REDUCED_C_POLICY,
+            self.cfg.RESNET_FC_VALUE_LAYERS,
+            self.cfg.RESNET_FC_POLICY_LAYERS,
+            self.full_support_size,
+            self.block_output_size_value,
+            self.block_output_size_policy,
+        )
 
         self.full_support_size = 10
 
