@@ -12,7 +12,7 @@ class ReprNet(nn.Module):
         self,
         c_in,
         c_out,
-        depth=16,
+        depth,
         stride=1,
         dilation=1,
         groups=1,
@@ -140,8 +140,9 @@ class DynamicsNet(nn.Module):
         block_output_reward,
         block_fn=Residual,
     ):
-        super().__init__()
-        # self.conv = conv3x3(num_channels, num_channels - 1)
+        super(DynamicsNet, self).__init__()
+        self.fc_reward_layers = list(fc_reward_layers)
+
         self.conv = StdConv2d(c_in, c_in - 1)
         self.bn = nn.BatchNorm2d(c_in - 1)
 
@@ -160,7 +161,7 @@ class DynamicsNet(nn.Module):
 
         self.fc = mlp(
             self.block_output_reward,
-            list(fc_reward_layers),
+            self.fc_reward_layers,
             full_support_size,
         )
 

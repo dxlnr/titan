@@ -23,8 +23,8 @@ class Conf:
 
     # GAME
     NUM_ACTORS: int = 2
-    OBSERVATION_SHAPE: Tuple[int] = (8, 8, 119)
-    ACTION_SPACE: int = 8
+    OBSERVATION_SHAPE: Tuple[int] = (119, 8, 8)
+    ACTION_SPACE: int = (8, 8, 8)
 
     # MODEL
     CHANNELS: int = 256

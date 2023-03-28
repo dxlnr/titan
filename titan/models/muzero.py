@@ -19,47 +19,47 @@ class M0Net(nn.Module):
         self.block_output_size_reward = (
             (
                 self.cfg.REDUCED_C_REWARD
-                * math.ceil(self.cfg.OBSERVATION_SHAPE[0] / 16)
                 * math.ceil(self.cfg.OBSERVATION_SHAPE[1] / 16)
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[2] / 16)
             )
             if downsample
             else (
                 self.cfg.REDUCED_C_REWARD
-                * self.cfg.OBSERVATION_SHAPE[0]
                 * self.cfg.OBSERVATION_SHAPE[1]
+                * self.cfg.OBSERVATION_SHAPE[2]
             )
         )
 
         self.block_output_size_value = (
             (
                 self.cfg.REDUCED_C_VALUE
-                * math.ceil(self.cfg.OBSERVATION_SHAPE[0] / 16)
                 * math.ceil(self.cfg.OBSERVATION_SHAPE[1] / 16)
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[2] / 16)
             )
             if downsample
             else (
                 self.cfg.REDUCED_C_VALUE
-                * self.cfg.OBSERVATION_SHAPE[0]
                 * self.cfg.OBSERVATION_SHAPE[1]
+                * self.cfg.OBSERVATION_SHAPE[2]
             )
         )
 
         self.block_output_size_policy = (
             (
                 self.cfg.REDUCED_C_POLICY
-                * math.ceil(self.cfg.OBSERVATION_SHAPE[0] / 16)
                 * math.ceil(self.cfg.OBSERVATION_SHAPE[1] / 16)
+                * math.ceil(self.cfg.OBSERVATION_SHAPE[2] / 16)
             )
             if downsample
             else (
                 self.cfg.REDUCED_C_POLICY
-                * self.cfg.OBSERVATION_SHAPE[0]
                 * self.cfg.OBSERVATION_SHAPE[1]
+                * self.cfg.OBSERVATION_SHAPE[2]
             )
         )
         # Representation function that encodes past observations.
         self.repr_network = ReprNet(
-            self.cfg.OBSERVATION_SHAPE[2], self.cfg.CHANNELS, self.cfg.DEPTH
+            self.cfg.OBSERVATION_SHAPE[0], self.cfg.CHANNELS, self.cfg.DEPTH
         )
         #
         self.dyn_network = DynamicsNet(
@@ -74,7 +74,7 @@ class M0Net(nn.Module):
         self.prediction_network = PredictionNet(
             self.cfg.CHANNELS,
             self.cfg.DEPTH,
-            self.cfg.ACTION_SPACE,
+            self.cfg.ACTION_SPACE[0],
             self.cfg.REDUCED_C_VALUE,
             self.cfg.REDUCED_C_POLICY,
             self.cfg.RESNET_FC_VALUE_LAYERS,
@@ -116,7 +116,26 @@ class M0Net(nn.Module):
         """."""
         # Stack encoded_state with a game specific one hot encoded action.
         # (See paper appendix Network Architecture)
-        pass
+        x = torch.cat((hidden_state, action), 2)
+
+        s, reward = self.dyn_network(x)
+
+        # Scale encoded state between [0, 1] (See appendix paper Training)
+        min_s = (
+            s.view(-1, s.shape[1], s.shape[2] * s.shape[3])
+            .min(2, keepdim=True)[0]
+            .unsqueeze(-1)
+        )
+        max_s = (
+            s.view(-1, s.shape[1], s.shape[2] * s.shape[3])
+            .max(2, keepdim=True)[0]
+            .unsqueeze(-1)
+        )
+        scale_s = max_s - min_s
+        scale_s[scale_s < 1e-5] += 1e-5
+        next_s_norm = (s - min_s) / scale_s
+
+        return next_s_norm, reward
 
     def initial_inference(self, obs):
         s = self.representation(obs)

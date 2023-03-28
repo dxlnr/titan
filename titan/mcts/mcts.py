@@ -68,11 +68,16 @@ def run_mcts(
 
     for i in tqdm(range(config.NUM_ROLLOUTS)):
         node, s = root_node, copy.deepcopy(state)
+        search_path = [node]
 
-        # # (1) Select
-        # while not node.is_leaf_node():
-        #     node = policy(node)
-        #     s.update(str(node.move))
+        # (1) Select
+        while not node.is_leaf_node():
+            node = policy(node)
+            s.update(str(node.move))
+            search_path.append(node)
+
+        parent = search_path[-2]
+        v, r, p, s_next = model.recurrent_inference(parent.s, history.last_action())
 
         # (2) Expand
         node.expand(s)

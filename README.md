@@ -3,8 +3,16 @@
 </h1>
 
 
-Zero Knowledge Chess Engine
+Zero Knowledge Chess Engine 
 
+TODO
+- Seperate the Chess state class into general Game class that knows nothing about the 
+specific game & a "Environment" class that handles all the game specific things.
+- Adjust the mcts algorithm accordingly 
+- Add training procedure 
+- Train 
+- Fix the interactive play mode for actually using the model.
+- Make it fast(er)
 
 ### MU Zero 
 policy and value networks
