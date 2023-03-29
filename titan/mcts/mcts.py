@@ -6,6 +6,7 @@ from tqdm import tqdm
 from titan.config import Conf
 from titan.mcts.state import State
 from titan.mcts.node import Node
+from titan.mcts.action import ActionState
 from titan.models import M0Net
 
 
@@ -53,31 +54,32 @@ def select_action(node: Node, temperature: float = 0) -> str:
 
 def run_mcts(
     config: Conf,
-    state: State,
+    root_node: Node,
+    action_state: ActionState,
     model: M0Net,
     add_exploration_noise=False,
 ):
     """Runs the Monte-Carlo Tree Search."""
-    root_node = Node()
+    # root_node = Node()
 
-    if add_exploration_noise:
-        root_node.add_exploration_noise(
-            dirichlet_alpha=config.ROOT_DIRICHLET_ALPHA,
-            exploration_fraction=config.ROOT_EXPLORATION_FRACTION,
-        )
+    # if add_exploration_noise:
+    #     root_node.add_exploration_noise(
+    #         dirichlet_alpha=config.ROOT_DIRICHLET_ALPHA,
+    #         exploration_fraction=config.ROOT_EXPLORATION_FRACTION,
+    #     )
 
     for i in tqdm(range(config.NUM_ROLLOUTS)):
-        node, s = root_node, copy.deepcopy(state)
+        node, s = root_node, copy.deepcopy(action_state)
         search_path = [node]
 
         # (1) Select
         while not node.is_leaf_node():
             node = policy(node)
-            s.update(str(node.move))
-            search_path.append(node)
+            s.update(str(node.action))
+            # search_path.append(node)
 
         parent = search_path[-2]
-        v, r, p, s_next = model.recurrent_inference(parent.s, history.last_action())
+        v, r, p, s_next = model.recurrent_inference(parent.s, game.last_action())
 
         # (2) Expand
         node.expand(s)

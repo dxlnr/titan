@@ -155,7 +155,7 @@ class Chess(State):
     def reset(self):
         """Resets game state and all its internal attributes."""
         pass
-
+    
     def get_observation(self) -> torch.Tensor:
         """Returns the observation tensor."""
         return self.enc_state
@@ -165,6 +165,10 @@ class Chess(State):
 
     def is_terminal(self) -> bool:
         return self.state.is_game_over()
+
+    def to_play(self) -> bool:
+        """Returns the color that is next up to play."""
+        return self.state.turn
 
     def update(self, move: str) -> None:
         """Updates the board with a specfic move."""
