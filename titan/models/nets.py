@@ -2,7 +2,13 @@
 import torch
 import torch.nn as nn
 
-from titan.models.layers import mlp, StdConv2d, Residual
+from titan.models.layers import mlp, Conv, StdConv2d, ResidualBlock
+
+
+def conv3x3(in_channels, out_channels, stride=1):
+    return torch.nn.Conv2d(
+        in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False
+    )
 
 
 class ReprNet(nn.Module):
@@ -13,49 +19,62 @@ class ReprNet(nn.Module):
         c_in,
         c_out,
         depth,
-        stride=1,
-        dilation=1,
-        groups=1,
-        block_fn=Residual,
-        act_layer=nn.ReLU,
-        conv_layer=None,
-        norm_layer=None,
-        **block_kwargs
+        # stride=1,
+        # dilation=1,
+        # groups=1,
+        # block_fn=ResidualBlock,
+        # act_layer=nn.ReLU,
+        # conv_layer=None,
+        # norm_layer=None,
+        # **block_kwargs
     ):
         super(ReprNet, self).__init__()
 
-        layer_kwargs = dict(
-            act_layer=act_layer, conv_layer=conv_layer, norm_layer=norm_layer
-        )
-        first_dilation = 1 if dilation in (1, 2) else 2
+        # layer_kwargs = dict(
+        #     act_layer=act_layer, conv_layer=conv_layer, norm_layer=norm_layer
+        # )
+        # first_dilation = 1 if dilation in (1, 2) else 2
 
-        self.act_layer = act_layer
-        self.conv = StdConv2d(c_in, c_out)
+        # self.act_layer = act_layer
+        # self.conv = conv3x3(c_in, c_out)
+        self.conv = Conv(c_in, c_out, stride=2)
+        # self.bn = nn.BatchNorm2d(c_out)
+        self.act_layer = nn.ReLU
         self.blocks = nn.Sequential()
 
-        c_prev = c_in
-        for idx in range(depth):
-            # drop_path_rate = block_dpr[idx] if block_dpr else 0.0
-            stride = stride if idx == 0 else 1
+        # self.resblocks = torch.nn.ModuleList(
+        #     [ResidualBlock(c_out, c_out) for _ in range(depth)]
+        # )
 
-            self.blocks.add_module(
-                str(idx),
-                block_fn(
-                    c_prev,
-                    c_out,
-                    stride=stride,
-                    dilation=dilation,
-                    first_dilation=first_dilation,
-                    groups=groups,
-                    **layer_kwargs,
-                    **block_kwargs,
-                ),
-            )
-            c_prev = c_out
-            first_dilation = dilation
+        for idx in range(depth):
+            self.blocks.add_module(str(idx), ResidualBlock(c_out, c_out))
+        # c_prev = c_in
+        # for idx in range(depth):
+        #     # drop_path_rate = block_dpr[idx] if block_dpr else 0.0
+        #     stride = stride if idx == 0 else 1
+
+        #     self.blocks.add_module(
+        #         str(idx),
+        #         block_fn(
+        #             c_prev,
+        #             c_out,
+        #             stride=stride,
+        #             # dilation=dilation,
+        #             # first_dilation=first_dilation,
+        #             # groups=groups,
+        #             # **layer_kwargs,
+        #             # **block_kwargs,
+        #         ),
+        #     )
+        #     c_prev = c_out
+        #     first_dilation = dilation
 
     def forward(self, x):
-        x = self.act_layer(self.conv(x))
+        # x = self.act_layer(self.conv(x))
+        x = self.conv(x)
+
+        # x = self.bn(x)
+        # x = self.relu(x)
         x = self.blocks(x)
         return x
 
@@ -75,7 +94,7 @@ class PredictionNet(nn.Module):
         full_support_size,
         block_output_value,
         block_output_policy,
-        block_fn=Residual,
+        block_fn=ResidualBlock,
         **kwargs
     ):
         super(PredictionNet, self).__init__()
@@ -138,7 +157,7 @@ class DynamicsNet(nn.Module):
         fc_reward_layers,
         full_support_size,
         block_output_reward,
-        block_fn=Residual,
+        block_fn=ResidualBlock,
     ):
         super(DynamicsNet, self).__init__()
         self.fc_reward_layers = list(fc_reward_layers)

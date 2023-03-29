@@ -1,4 +1,4 @@
-"""Residual Connection"""
+"""Layer Blocks for Networks"""
 from functools import partial
 
 import torch
@@ -16,6 +16,19 @@ def make_divisible(
     if new_v < round_limit * v:
         new_v += divisor
     return new_v
+
+
+def autopad(kernel, pad=None, dilation=1):
+    """Pad to 'same' shape outputs."""
+    if dilation > 1:
+        kernel = (
+            dilation * (kernel - 1) + 1
+            if isinstance(kernel, int)
+            else [dilation * (x - 1) + 1 for x in kernel]
+        )
+    if pad is None:
+        pad = kernel // 2 if isinstance(kernel, int) else [x // 2 for x in kernel]
+    return pad
 
 
 def get_padding(kernel: int, stride: int = 1, dilation: int = 1) -> int:
@@ -38,6 +51,34 @@ def mlp(
         act = activation if i < len(sizes) - 2 else output_activation
         layers += [torch.nn.Linear(sizes[i], sizes[i + 1]), act()]
     return torch.nn.Sequential(*layers)
+
+
+class Conv(nn.Module):
+    """Convolution Block."""
+
+    def __init__(
+        self,
+        in_c: int,
+        out_c: int,
+        kernel: int = 3,
+        stride: int = 1,
+        pad: int = None,
+        groups: int = 1,
+        act: bool = True,
+    ):
+        super().__init__()
+        self.conv = nn.Conv2d(
+            in_c, out_c, kernel, stride, autopad(kernel, pad), groups=groups, bias=False
+        )
+        self.bn = nn.BatchNorm2d(out_c)
+        self.relu = (
+            nn.ReLU()
+            if act is True
+            else (act if isinstance(act, nn.Module) else nn.Identity())
+        )
+
+    def forward(self, x):
+        return self.relu(self.bn(self.conv(x)))
 
 
 class StdConv2d(nn.Conv2d):
@@ -71,6 +112,7 @@ class StdConv2d(nn.Conv2d):
             groups=groups,
             bias=bias,
         )
+        self.out_c = out_c
         self.eps = eps
 
     def forward(self, x):
@@ -86,141 +128,6 @@ class StdConv2d(nn.Conv2d):
             x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups
         )
         return x
-
-
-class PreActBottleneck(nn.Module):
-    """Pre-activation (v2) bottleneck block.
-
-    Follows the implementation of "Identity Mappings in Deep Residual Networks":
-    https://github.com/KaimingHe/resnet-1k-layers/blob/master/resnet-pre-act.lua
-
-    Except it puts the stride on 3x3 conv when available.
-    """
-
-    def __init__(
-        self,
-        in_c,
-        out_c=None,
-        bottle_ratio: float = 0.25,
-        stride: int = 1,
-        dilation: int = 1,
-        first_dilation: int = None,
-        groups: int = 1,
-        act_layer=None,
-        conv_layer=None,
-        norm_layer=None,
-        proj_layer=None,
-        drop_path_rate=0.0,
-    ):
-        super().__init__()
-
-        first_dilation = first_dilation or dilation
-        conv_layer = conv_layer or StdConv2d
-        norm_layer = norm_layer or partial(GroupNormAct, num_groups=32)
-
-        out_c = out_c or in_c
-        mid_c = make_divisible(out_c * bottle_ratio)
-
-        if proj_layer is not None:
-            self.downsample = proj_layer(
-                in_c,
-                out_c,
-                stride=stride,
-                dilation=dilation,
-                first_dilation=first_dilation,
-                preact=True,
-                conv_layer=conv_layer,
-                norm_layer=norm_layer,
-            )
-        else:
-            self.downsample = None
-
-        self.norm1 = norm_layer(in_c)
-        self.conv1 = conv_layer(in_c, mid_c, 1)
-        self.norm2 = norm_layer(mid_c)
-        self.conv2 = conv_layer(
-            mid_c, mid_c, 3, stride=stride, dilation=first_dilation, groups=groups
-        )
-        self.norm3 = norm_layer(mid_c)
-        self.conv3 = conv_layer(mid_c, out_c, 1)
-        # self.drop_path = DropPath(drop_path_rate) if drop_path_rate > 0 else nn.Identity()
-
-    def zero_init_last(self):
-        nn.init.zeros_(self.conv3.weight)
-
-    def forward(self, x):
-        x_preact = self.norm1(x)
-
-        # skip connection
-        identity = x
-        if self.downsample is not None:
-            identity = self.downsample(x_preact)
-
-        # residual branch
-        x = self.conv1(x_preact)
-        x = self.conv2(self.norm2(x))
-        x = self.conv3(self.norm3(x))
-        # x = self.drop_path(x)
-        return x + identity
-
-
-class Residual(nn.Module):
-    """."""
-
-    def __init__(
-        self,
-        in_c,
-        out_c=None,
-        stride: int = 1,
-        dilation: int = 1,
-        first_dilation: int = None,
-        groups: int = 1,
-        act_layer=None,
-        conv_layer=None,
-        norm_layer=None,
-        proj_layer=None,
-        drop_path_rate=0.0,
-    ):
-        super().__init__()
-
-        first_dilation = first_dilation or dilation
-        conv_layer = conv_layer or StdConv2d
-        norm_layer = norm_layer or nn.BatchNorm2d
-
-        out_c = out_c or in_c
-
-        if proj_layer is not None:
-            self.downsample = proj_layer(
-                in_c,
-                out_c,
-                stride=stride,
-                dilation=dilation,
-                first_dilation=first_dilation,
-                preact=True,
-                conv_layer=conv_layer,
-                norm_layer=norm_layer,
-            )
-        else:
-            self.downsample = None
-
-        self.norm1 = norm_layer(in_c)
-        self.conv1 = conv_layer(in_c, out_c, 1)
-        self.norm2 = norm_layer(out_c)
-        self.conv2 = conv_layer(
-            out_c, out_c, 3, stride=stride, dilation=first_dilation, groups=groups
-        )
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        # skip connection
-        identity = x
-        if self.downsample is not None:
-            identity = self.downsample(x)
-
-        # residual branch
-        x = self.conv1(x)
-        x = self.conv2(self.norm2(x))
-        return self.relu(x + identity)
 
 
 class DownsampleAvg(nn.Module):
@@ -257,60 +164,23 @@ class DownsampleAvg(nn.Module):
         return self.norm(self.conv(self.pool(x)))
 
 
-# class ResNetStage(nn.Module):
-#     """ResNet Stage."""
+class ResidualBlock(nn.Module):
+    """Residual Block implementation."""
 
-#     def __init__(
-#         self,
-#         in_c,
-#         out_c,
-#         depth,
-#         stride,
-#         dilation,
-#         bottle_ratio=0.25,
-#         groups=1,
-#         avg_down=False,
-#         block_dpr=None,
-#         block_fn=PreActBottleneck,
-#         act_layer=None,
-#         conv_layer=None,
-#         norm_layer=None,
-#         **block_kwargs,
-#     ):
-#         super(ResNetStage, self).__init__()
+    def __init__(self, in_c, out_c, stride=1, downsample=None):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = Conv(in_c, out_c)
+        self.conv2 = Conv(out_c, out_c, act=False)
+        self.downsample = downsample
+        self.relu = nn.ReLU()
 
-#         first_dilation = 1 if dilation in (1, 2) else 2
-#         layer_kwargs = dict(
-#             act_layer=act_layer, conv_layer=conv_layer, norm_layer=norm_layer
-#         )
-#         proj_layer = DownsampleAvg if avg_down else DownsampleConv
-#         prev_c = in_c
+    def forward(self, x):
+        identity = x
 
-#         self.blocks = nn.Sequential()
-#         for idx in range(depth):
-#             drop_path_rate = block_dpr[idx] if block_dpr else 0.0
-#             stride = stride if idx == 0 else 1
+        out = self.conv1(x)
+        out = self.conv2(out)
 
-#             self.blocks.add_module(
-#                 str(idx),
-#                 block_fn(
-#                     prev_c,
-#                     out_c,
-#                     stride=stride,
-#                     dilation=dilation,
-#                     bottle_ratio=bottle_ratio,
-#                     groups=groups,
-#                     first_dilation=first_dilation,
-#                     proj_layer=proj_layer,
-#                     drop_path_rate=drop_path_rate,
-#                     **layer_kwargs,
-#                     **block_kwargs,
-#                 ),
-#             )
-#             prev_c = out_c
-#             first_dilation = dilation
-#             proj_layer = None
-
-#     def forward(self, x):
-#         x = self.blocks(x)
-#         return x
+        if self.downsample:
+            residual = self.downsample(x)
+        out += identity
+        return self.relu(out)

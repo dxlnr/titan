@@ -46,8 +46,10 @@ def play_game(config: Conf, model: M0Net):
             # At the root of the search tree we use the representation function to
             # obtain a hidden state given the current observation.
             root = Node(0)
-            observation = observation.to(next(model.parameters()).device)
+            # observation = observation.float().unsqueeze(0).to(next(model.parameters()).device)
+            observation = observation.float().unsqueeze(0).to(next(model.parameters()).device)
 
+            print(observation.shape)
             (
                 root_predicted_value,
                 reward,

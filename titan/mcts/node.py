@@ -31,7 +31,6 @@ class Node:
         self.hidden_state = hidden_state
 
         if not state.is_terminal():
-
             policy_values = torch.softmax(
                 torch.tensor([policy_logits[0][a] for a in actions]), dim=0
             ).tolist()
