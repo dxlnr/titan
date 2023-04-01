@@ -9,7 +9,7 @@ class Conf:
 
     :param NUM_ACTORS: Number of players in the game.
     :param OBSERVATION_SHAPE: Dimensions of the game observation, must be 3D (height, width, channel).
-    :param SIZE_ACTION_SPACE: Defines the dimension of the action space.
+    :param ACTION_SHAPE: Defines the dimension of the action space.
         In chess, 8 planes are used to encode the action.
         The first one-hot plane encodes which position the piece was moved from.
         The next two planes encode which position the piece was moved to:
@@ -17,14 +17,18 @@ class Conf:
             and a second binary plane to indicate whether the target was valid (on the board) or not.
         The remaining five binary planes are used to indicate the type of promotion,
         if any (queen, knight, bishop, rook, none).
-
+    
+    :param ACTION_SPACE: NRayDirs x MaxRayLength + NKnightDirs + NPawnDirs * NMinorPromotions, 
+        encoding a probability distribution over 64 x 73 = 4,672 possible moves.
     :param CHANNELS:
     """
 
     # GAME
     NUM_ACTORS: int = 2
     OBSERVATION_SHAPE: Tuple[int] = (119, 8, 8)
-    ACTION_SPACE: int = (8, 8, 8)
+    ACTION_SHAPE: Tuple[int] = (8, 8, 8)
+    ACTION_SPACE: int = 64 * 73 
+    
 
     # MODEL
     CHANNELS: int = 256

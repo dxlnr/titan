@@ -18,6 +18,10 @@ class Chess(State):
     # Additional L constant-valued input planes denoting the player’s colour,
     # the total move count, and the state of special rules.
     L = 7
+    # 73 target square possibilities 
+    # (NRayDirs x MaxRayLength + NKnightDirs + NPawnDirs * NMinorPromotions), 
+    # encoding a probability distribution over 64x73 = 4,672 possible moves
+    TS = 73
     # Chess Pieces Mapping
     MAP = {
         "R": 0,  # White Rook
@@ -132,7 +136,7 @@ class Chess(State):
     def encode_board_action(self, move: chess.Move):
         """."""
         # Action representation
-        enc_action = torch.zeros([self.N, self.N, 8])
+        enc_action = torch.zeros([8, self.N, self.N])
         # Get index from move square.
         s_i, s_j = divmod(move.from_square, self.N)
         t_i, t_j = divmod(move.to_square, self.N)
@@ -150,6 +154,21 @@ class Chess(State):
             enc_action[7, :, :] = 1
 
         return enc_action
+    
+    def encode_actions(self):
+        """."""
+        board = self.encode_epd()
+        # Action representation: 73 x 8 x 8
+        enc_action = torch.zeros([self.TS, self.N. self.N])
+        # # Get index from move square.
+        # s_i, s_j = divmod(move.from_square, self.N)
+        # t_i, t_j = divmod(move.to_square, self.N)
+        
+        for i in range(self.N):
+            for j in range(self.N):
+
+                enc_action[
+
 
     def reset(self):
         """Resets game state and all its internal attributes."""
@@ -160,7 +179,7 @@ class Chess(State):
         return self.enc_state
 
     def get_legal_actions(self) -> list:
-        return list(self.state.legal_moves)
+        return [str(m) for m in list(self.state.legal_moves)]
 
     def is_terminal(self) -> bool:
         return self.state.is_game_over()

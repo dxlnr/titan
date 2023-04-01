@@ -57,6 +57,7 @@ class M0Net(nn.Module):
                 * self.cfg.OBSERVATION_SHAPE[2]
             )
         )
+        print("block policy output:", self.block_output_size_policy)
         # Representation function that encodes past observations.
         self.repr_network = ReprNet(
             self.cfg.OBSERVATION_SHAPE[0], self.cfg.CHANNELS, self.cfg.DEPTH
@@ -74,7 +75,7 @@ class M0Net(nn.Module):
         self.prediction_network = PredictionNet(
             self.cfg.CHANNELS,
             self.cfg.DEPTH,
-            self.cfg.ACTION_SPACE[0],
+            self.cfg.ACTION_SPACE,
             self.cfg.REDUCED_C_VALUE,
             self.cfg.REDUCED_C_POLICY,
             self.cfg.RESNET_FC_VALUE_LAYERS,
@@ -139,6 +140,7 @@ class M0Net(nn.Module):
 
     def initial_inference(self, obs):
         s = self.representation(obs)
+        print(s)
         policy_logits, value = self.prediction(s)
 
         # reward equal to 0 for consistency

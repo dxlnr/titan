@@ -37,7 +37,7 @@ class ReprNet(nn.Module):
 
         # self.act_layer = act_layer
         # self.conv = conv3x3(c_in, c_out)
-        self.conv = Conv(c_in, c_out, stride=2)
+        self.conv = Conv(c_in, c_out, stride=1)
         # self.bn = nn.BatchNorm2d(c_out)
         self.act_layer = nn.ReLU
         self.blocks = nn.Sequential()
@@ -137,8 +137,8 @@ class PredictionNet(nn.Module):
             self.action_space,
         )
 
-    def forward(self):
-        x = self.block(x)
+    def forward(self, x):
+        x = self.blocks(x)
         value = self.conv_value(x)
         policy = self.conv_policy(x)
         value = value.view(-1, self.block_output_value)
@@ -189,7 +189,7 @@ class DynamicsNet(nn.Module):
         x = self.bn(x)
         x = nn.functional.relu(x)
 
-        x = self.block(x)
+        x = self.blocks(x)
         state = x
         x = self.conv_reward(x)
         x = x.view(-1, self.block_output_reward)

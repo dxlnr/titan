@@ -1,6 +1,7 @@
 """Node Object for MCTS"""
 import math
 import numpy as np
+import torch
 
 from titan.mcts.state import State
 
@@ -20,7 +21,7 @@ class Node:
     def __repr__(self) -> str:
         return f"Node| n: {self.n_k}, w: {self.w_k}, action: {self.action}, parent: {self.parent}."
 
-    def expand(self, actions, to_play, reward, policy, hidden_state) -> None:
+    def expand(self, actions: int, to_play, reward, policy_logits, hidden_state) -> None:
         """When node is choosen and not terminal, expands the tree by finding all
         possible child nodes.
 
@@ -30,14 +31,19 @@ class Node:
         self.reward = reward
         self.hidden_state = hidden_state
 
-        if not state.is_terminal():
-            policy_values = torch.softmax(
-                torch.tensor([policy_logits[0][a] for a in actions]), dim=0
-            ).tolist()
-            policy = {a: policy_values[i] for i, a in enumerate(actions)}
+        print(policy_logits)
+        print(policy_logits.shape)
 
-            for action, p in policy.items():
-                self.children.append(Node(p))
+        print(type(actions))
+        print(actions)
+        # if not state.is_terminal():
+        policy_values = torch.softmax(policy_logits, dim=0).tolist()
+
+        print("policy values: ", policy_values)
+        policy = {a: policy_values[i] for i, a in enumerate(actions)}
+
+        for action, p in policy.items():
+            self.children.append(Node(p, action, self))
             # for m in state.get_legal_actions():
             #     c_node = Node(m, self)
             #     self.children.append(c_node)

@@ -2,7 +2,8 @@
 import torch
 
 from titan.config import Conf
-from titan.mcts.chess_state import Chess
+# from titan.mcts.chess_state import Chess
+from titan.game.chess_board import Chess
 from titan.mcts.node import Node
 from titan.mcts.action import ActionState
 from titan.mcts import run_mcts
@@ -53,11 +54,11 @@ def play_game(config: Conf, model: M0Net):
             (
                 root_predicted_value,
                 reward,
-                policy_logits,
+                policy,
                 hidden_state,
             ) = model.initial_inference(observation)
 
-            root.expand(root, game.to_play(), reward, policy, hidden_state)
+            root.expand(game.get_legal_actions(), game.to_play(), reward, policy, hidden_state)
             # model.initial_inference(current_observation))
             # add_exploration_noise(config, root)
 
