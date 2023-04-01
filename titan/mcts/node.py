@@ -16,12 +16,14 @@ class Node:
         self.action = action
         self.parent = parent
         self.prior = prior
-        self.children = list()
+        self.children = {}
 
     def __repr__(self) -> str:
         return f"Node| n: {self.n_k}, w: {self.w_k}, action: {self.action}, parent: {self.parent}."
 
-    def expand(self, actions: int, to_play, reward, policy_logits, hidden_state) -> None:
+    def expand(
+        self, actions: int, to_play, reward, policy_logits, hidden_state
+    ) -> None:
         """When node is choosen and not terminal, expands the tree by finding all
         possible child nodes.
 
@@ -31,19 +33,23 @@ class Node:
         self.reward = reward
         self.hidden_state = hidden_state
 
-        print(policy_logits)
+        #         print(policy_logits)
         print(policy_logits.shape)
 
         print(type(actions))
         print(actions)
+        policy_logits = policy_logits.squeeze()
         # if not state.is_terminal():
-        policy_values = torch.softmax(policy_logits, dim=0).tolist()
+        # policy_values = torch.softmax(policy_logits, dim=0).tolist()
+        policy = {a: math.exp(policy_logits[a]) for a in actions}
+        policy_sum = sum(policy.values())
+        print(policy_sum)
 
-        print("policy values: ", policy_values)
-        policy = {a: policy_values[i] for i, a in enumerate(actions)}
+        # print("policy values: ", policy_values)
+        # policy = {a: policy_values[i] for i, a in enumerate(actions)}
 
         for action, p in policy.items():
-            self.children.append(Node(p, action, self))
+            self.children[action] = Node((p / policy_sum), action, self)
             # for m in state.get_legal_actions():
             #     c_node = Node(m, self)
             #     self.children.append(c_node)

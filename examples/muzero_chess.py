@@ -12,11 +12,32 @@ if __name__ == "__main__":
     # Initiate some board state.
     state = Chess(Board())
     print(state.state.current_board)
-    state.encode_board_state()
+    # state.encode_board_state()
     
     print("")
     d1 = state.decode_board_state()
     print(d1)
+
+    action_idxs = []
+    for action in state.state.actions():
+        print(action)
+        if action != []:
+            initial_pos,final_pos,underpromote = action
+            print(type(initial_pos))
+            action_idxs.append(state.encode_action(initial_pos, final_pos, underpromote))
+    
+    print(action_idxs)
+    # acts = state.encode_action()
+    # print(acts)
+    # last_move = np.argmax(dataset[-1][1])
+    # b = state.decode_board_state()
+    # act = state.decode_action()
+    # print(act)
+
+    # b.move_piece(act[0][0],act[1][0],act[2][0])
+    # for i in range(len(dataset)):
+    #     board = ed.decode_board(dataset[i][0])
+    #     fig = vb(board.current_board)
 
 
 

@@ -3,7 +3,7 @@ import torch
 
 from titan.config import Conf
 # from titan.mcts.chess_state import Chess
-from titan.game.chess_board import Chess
+from titan.game.chess_state import Chess
 from titan.mcts.node import Node
 from titan.mcts.action import ActionState
 from titan.mcts import run_mcts
@@ -47,9 +47,12 @@ def play_game(config: Conf, model: M0Net):
             # At the root of the search tree we use the representation function to
             # obtain a hidden state given the current observation.
             root = Node(0)
-            # observation = observation.float().unsqueeze(0).to(next(model.parameters()).device)
-            observation = observation.float().unsqueeze(0).to(next(model.parameters()).device)
-
+            # 
+            if len(observation.shape) == 3:
+                observation = observation.float().unsqueeze(0).to(next(model.parameters()).device)
+            else:
+                observation = observation.float().to(next(model.parameters()).device)
+ 
             print(observation.shape)
             (
                 root_predicted_value,
@@ -58,14 +61,14 @@ def play_game(config: Conf, model: M0Net):
                 hidden_state,
             ) = model.initial_inference(observation)
 
-            root.expand(game.get_legal_actions(), game.to_play(), reward, policy, hidden_state)
+            root.expand(game.get_actions(), game.to_play(), reward, policy, hidden_state)
             # model.initial_inference(current_observation))
             # add_exploration_noise(config, root)
 
             # We then run a Monte Carlo Tree Search using only action sequences and the
             # model learned by the network.
             # run_mcts(config, root, game.action_history(), model)
-            root_node = run_mcts(config, root, action_state, model)
+            # root_node = run_mcts(config, root, action_state, model)
 
             # action = select_action(root)
             # game.update(str(action))

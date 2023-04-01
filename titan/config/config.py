@@ -17,8 +17,8 @@ class Conf:
             and a second binary plane to indicate whether the target was valid (on the board) or not.
         The remaining five binary planes are used to indicate the type of promotion,
         if any (queen, knight, bishop, rook, none).
-    
-    :param ACTION_SPACE: NRayDirs x MaxRayLength + NKnightDirs + NPawnDirs * NMinorPromotions, 
+
+    :param ACTION_SPACE: NRayDirs x MaxRayLength + NKnightDirs + NPawnDirs * NMinorPromotions,
         encoding a probability distribution over 64 x 73 = 4,672 possible moves.
     :param CHANNELS:
     """
@@ -27,8 +27,7 @@ class Conf:
     NUM_ACTORS: int = 2
     OBSERVATION_SHAPE: Tuple[int] = (119, 8, 8)
     ACTION_SHAPE: Tuple[int] = (8, 8, 8)
-    ACTION_SPACE: int = 64 * 73 
-    
+    ACTION_SPACE: int = 64 * 73
 
     # MODEL
     CHANNELS: int = 256
