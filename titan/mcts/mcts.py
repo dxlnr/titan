@@ -88,9 +88,13 @@ def ucb_score(
 
 def backpropagate(search_path: list[Node], value: float, to_play: bool, discount: float, min_max_stats: MinMaxStats):
     """Backpropagate all the way up the tree to the root."""
-    for node in search_path:
+    for node in search_path: 
         node.w_k += value if node.to_play == to_play else -value
         node.n_k += 1
+        print("")
+        print("node v", node.value())
+        print("node n_k", node.n_k)
+        print("node w_k", node.w_k)
         min_max_stats.update(node.value())
 
         value = node.reward + discount * value
@@ -143,8 +147,8 @@ def run_mcts(
 
         v, r, p, s_next = model.recurrent_inference(parent.hidden_state, a)
 
-        sr = transform_to_scalar(config, r)
-        sv = transform_to_scalar(config, v)
+        sr = transform_to_scalar(config, r).item()
+        sv = transform_to_scalar(config, v).item()
 
         print("value, reward", sv, sr)
         # 
@@ -163,7 +167,7 @@ def run_mcts(
 #         delta = s.eval()
 
         # (4) Backpropagate
-        backpropagate(search_path, v, s.to_play(), config.DISCOUNT, min_max_stats)
+        backpropagate(search_path, sv, s.to_play(), config.DISCOUNT, min_max_stats)
 
         # while True:
         #     node.propagate(delta)
