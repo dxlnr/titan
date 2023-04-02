@@ -75,7 +75,7 @@ class M0Net(nn.Module):
         self.prediction_network = PredictionNet(
             self.cfg.CHANNELS,
             self.cfg.DEPTH,
-            self.cfg.ACTION_SPACE,
+            len(self.cfg.ACTION_SPACE),
             self.cfg.REDUCED_C_VALUE,
             self.cfg.REDUCED_C_POLICY,
             self.cfg.RESNET_FC_VALUE_LAYERS,
@@ -170,7 +170,7 @@ class M0Net(nn.Module):
 
 
 def transform_to_scalar(config, x) -> float:
-    """Transform a categorical representation to a scalar.""" 
+    """Transform a categorical representation to a scalar."""
     probs = torch.softmax(x, dim=1)
     support = (
         torch.tensor([x for x in range(-config.SUPPORT_SIZE, config.SUPPORT_SIZE + 1)])
@@ -182,7 +182,13 @@ def transform_to_scalar(config, x) -> float:
 
     # Invert the scaling (defined in https://arxiv.org/abs/1805.11593)
     x = torch.sign(x) * (
-        ((torch.sqrt(1 + 4 * config.EPSILON * (torch.abs(x) + 1 + config.EPSILON)) - 1) / (2 * config.EPSILON))
+        (
+            (
+                torch.sqrt(1 + 4 * config.EPSILON * (torch.abs(x) + 1 + config.EPSILON))
+                - 1
+            )
+            / (2 * config.EPSILON)
+        )
         ** 2
         - 1
     )
@@ -190,4 +196,4 @@ def transform_to_scalar(config, x) -> float:
 
 
 def transform_from_scalar(config, x: int):
-    sx = math.sign(x) * (math.sqrt(math.abs(x) + 1) -1 + config.EPSILON * x)
+    sx = math.sign(x) * (math.sqrt(math.abs(x) + 1) - 1 + config.EPSILON * x)

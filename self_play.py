@@ -2,14 +2,14 @@
 import torch
 
 from titan.config import Conf
+
 # from titan.mcts.chess_state import Chess
 from titan.game.chess_state import Chess
-from titan.mcts.node import Node
+from titan.mcts import run_mcts, select_action
 from titan.mcts.action import ActionHistory
-from titan.mcts import run_mcts
-from titan.mcts.mcts import select_action
+from titan.mcts.node import Node
 from titan.mem import ReplayBuffer, SharedStorage
-from titan.models import M0Net 
+from titan.models import M0Net
 from titan.models.muzero import transform_to_scalar
 
 
@@ -48,13 +48,14 @@ def play_game(config: Conf, model: M0Net):
             # At the root of the search tree we use the representation function to
             # obtain a hidden state given the current observation.
             root = Node(0)
-            # 
+            #
             if len(observation.shape) == 3:
-                observation = observation.float().unsqueeze(0).to(next(model.parameters()).device)
+                observation = (
+                    observation.float().unsqueeze(0).to(next(model.parameters()).device)
+                )
             else:
                 observation = observation.float().to(next(model.parameters()).device)
- 
-            print(observation.shape)
+
             (
                 root_predicted_value,
                 reward,
@@ -68,18 +69,19 @@ def play_game(config: Conf, model: M0Net):
 
             # We then run a Monte Carlo Tree Search using only action sequences and the
             # model learned by the network.
-            run_mcts(config, root, game, action_history, model)
-            # root_node = run_mcts(config, root, action_state, model)
+            root = run_mcts(config, root, game, action_history, model)
 
-            # action = select_action(root)
+            action = select_action(root)
             # game.update(str(action))
-            # print(str(action))
             # game.store_search_statistics(root)
+
+            print(action)
     return game
 
 
 def main():
     cfg = Conf()
+    print(cfg)
     storage = SharedStorage(cfg)
     buffer = ReplayBuffer()
 

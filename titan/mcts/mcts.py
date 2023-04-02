@@ -1,18 +1,16 @@
 """Monte-Carlo Tree Search"""
 import copy
-import numpy as np
-import random
 import math
+
+import numpy as np
 from tqdm import tqdm
 
 from titan.config import Conf
-from titan.mcts.state import State
-from titan.mcts.node import Node
 from titan.mcts.action import ActionHistory
-from titan.models.muzero import transform_to_scalar
-
-# from titan.game.chess_state import Chess
+from titan.mcts.node import Node
+from titan.mcts.state import State
 from titan.models import M0Net
+from titan.models.muzero import transform_to_scalar
 
 
 class MinMaxStats:
@@ -21,8 +19,8 @@ class MinMaxStats:
     MAXIMUM_FLOAT_VALUE: float = float("inf")
 
     def __init__(self):
-        self.maximum = -float("inf")
-        self.minimum = float("inf")
+        self.maximum = -self.MAXIMUM_FLOAT_VALUE
+        self.minimum = self.MAXIMUM_FLOAT_VALUE
 
     def update(self, value):
         self.maximum = max(self.maximum, value)
@@ -35,27 +33,24 @@ class MinMaxStats:
         return value
 
 
-def policy(node: Node) -> Node:
-    """Policy that defines which node gets choosen next.
+def select_action(node: Node, temperature: float = 0) -> int:
+    """Select an action based on temperature value. Returns an index value."""
+    vc = np.array([child.n_k for child in node.children.values()])
+    actions = [action for action in node.children.keys()]
 
-    The formula which is used is called UCT (Upper Confidence Bound 1 applied to trees).
-    The node with the highest UCT gets choosen.
-    """
-    idx = 0
-    uct = 0
-    for i, n in enumerate(node.children):
-        if n.n_k == 0:
-            idx = i
-            break
-        else:
-            if (val := n.uct()) > uct:
-                idx = i
-                uct = val
+    if temperature == 0:
+        action = actions[np.argmax(vc)]
+    elif temperature == float("inf"):
+        action = np.random.choice(actions)
+    else:
+        v_dist = vc ** (1 / temperature)
+        v_dist = v_dist / sum(v_dist)
+        action = np.random.choice(actions, p=v_dist)
 
-    return node.children[idx]
+    return action
 
 
-def select_child(config, node: Node, min_max_stats: MinMaxStats):
+def select_child(config: Conf, node: Node, min_max_stats: MinMaxStats):
     """Select the child with the highest UCB score."""
     max_ucb = max(
         ucb_score(config, node, child, min_max_stats)
@@ -86,33 +81,20 @@ def ucb_score(
     return prior_score + value_score
 
 
-def backpropagate(search_path: list[Node], value: float, to_play: bool, discount: float, min_max_stats: MinMaxStats):
+def backpropagate(
+    search_path: list[Node],
+    value: float,
+    to_play: bool,
+    discount: float,
+    min_max_stats: MinMaxStats,
+):
     """Backpropagate all the way up the tree to the root."""
-    for node in search_path: 
+    for node in search_path:
         node.w_k += value if node.to_play == to_play else -value
         node.n_k += 1
-        print("")
-        print("node v", node.value())
-        print("node n_k", node.n_k)
-        print("node w_k", node.w_k)
         min_max_stats.update(node.value())
 
         value = node.reward + discount * value
-
-def select_action(node: Node, temperature: float = 0) -> str:
-    """."""
-
-    def score(n):
-        return n.w_k / n.n_k
-
-    if temperature == 0:
-        from operator import attrgetter
-
-        cn = max(node.children, key=attrgetter("n_k"))
-    else:
-        cn = max(node.children, key=score)
-
-    return cn.move
 
 
 def run_mcts(
@@ -133,8 +115,7 @@ def run_mcts(
             copy.deepcopy(history),
         )
         search_path = [node]
-
-        # (1) Select
+        # Select
         while not node.is_leaf_node():
             action, node = select_child(config, node, min_max_stats)
             history.add_action(action)
@@ -144,37 +125,14 @@ def run_mcts(
         # Encode the action for using it as input to the neural net.
         source, t, pro = s.decode_action(history.last_action())
         a = s.encode_single_action(source[0], t[0], pro[0])
-
+        #
         v, r, p, s_next = model.recurrent_inference(parent.hidden_state, a)
-
+        # Transform the distributions to scalars.
         sr = transform_to_scalar(config, r).item()
         sv = transform_to_scalar(config, v).item()
-
-        print("value, reward", sv, sr)
-        # 
-        # TODO: s.update() in some sort.
-        #
-        print(node)
-        # (2) Expand
-        node.expand(s.get_actions(), s.to_play(), sr, p, s_next)
-
-        # if not node.is_leaf_node() or not s.is_terminal():
-        #     node = policy(node)
-
-#         # (3) Simulate
-#         while not s.is_terminal():
-#             s = simulate_policy(s)
-#         delta = s.eval()
-
-        # (4) Backpropagate
+        # Expand
+        node.expand(config.ACTION_SPACE, s.to_play(), sr, p, s_next)
+        # Backpropagate
         backpropagate(search_path, sv, s.to_play(), config.DISCOUNT, min_max_stats)
 
-        # while True:
-        #     node.propagate(delta)
-        #     if node.is_root_node():
-        #         break
-
-        #     node = node.parent
-
-    # return choose_move(root_node)
-    return root_node
+    return search_path[0]

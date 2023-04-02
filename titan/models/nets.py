@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 
-from titan.models.layers import mlp, Conv, StdConv2d, ResidualBlock
+from titan.models.layers import Conv, ResidualBlock, StdConv2d, mlp
 
 
 def conv3x3(in_channels, out_channels, stride=1):

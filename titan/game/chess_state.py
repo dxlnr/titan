@@ -1,9 +1,11 @@
 """Chess Game State"""
+from typing import Tuple
+
 import numpy as np
 import torch
 
-from titan.mcts.state import State
 from titan.game.chess_board import Board
+from titan.mcts.state import State
 
 
 class Chess:
@@ -331,20 +333,22 @@ class Chess:
             prom.append(promoted)
         return i_pos, f_pos, prom
 
-    def encode_single_action(self, source, target, promotion=None):
-        """."""
+    def encode_single_action(
+        self, source: Tuple[int], target: Tuple[int], promotion: str = None
+    ) -> torch.Tensor:
+        """Encodes a single action to 8x8x8 tensor."""
         act = torch.zeros([self.N, self.N, self.N])
-        print(source)
-        print(target)
-        print(promotion)
+        # Indices of the board.
         s_i, s_j = source
         t_i, t_j = target
-        # Position the piece was moved from.
-        act[0, s_i, s_j] = 1
-        # Position the piece was moved to.
-        act[1, t_i, t_j] = 1
-        # If the move was legal
-        act[2, :, :] = 1
+        if not (s_i > 7 or s_j > 7 or s_i < 0 or s_j < 0):
+            # Position the piece was moved from.
+            act[0, s_i, s_j] = 1
+        if not (t_i > 7 or t_j > 7 or t_i < 0 or t_j < 0):
+            # Position the piece was moved to.
+            act[1, t_i, t_j] = 1
+            # If the move was legal
+            act[2, :, :] = 1
         # Promotion encodings.
         if promotion == "queen":
             act[3, :, :] = 1

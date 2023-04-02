@@ -1,6 +1,6 @@
 """MuZero Configurations"""
-from typing import Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List, Tuple
 
 
 @dataclass
@@ -27,7 +27,7 @@ class Conf:
     NUM_ACTORS: int = 2
     OBSERVATION_SHAPE: Tuple[int] = (119, 8, 8)
     ACTION_SHAPE: Tuple[int] = (8, 8, 8)
-    ACTION_SPACE: int = 64 * 73
+    ACTION_SPACE: list = field(default_factory=list)
 
     # MODEL
     CHANNELS: int = 256
@@ -38,20 +38,15 @@ class Conf:
     RESNET_FC_REWARD_LAYERS: Tuple[int] = (256, 256)
     RESNET_FC_VALUE_LAYERS: Tuple[int] = (256, 256)
     RESNET_FC_POLICY_LAYERS: Tuple[int] = (256, 256)
-
     SUPPORT_SIZE: int = 10
 
-    # VISIT_SOFTMAX_TEMPERATURE_FN
+    # MCTS
     MAX_MOVES: int = 512
     NUM_ROLLOUTS: int = 800
     DISCOUNT: float = 1.0
     EPSILON: float = 0.001
-
-    # Root prior exploration noise.
     ROOT_DIRICHLET_ALPHA: float = 0.3
     ROOT_EXPLORATION_FRACTION: float = 0.25
-
-    # UCB formula
     PB_C_BASE: int = 19652
     PB_C_INIT: int = 1.25
 
@@ -78,7 +73,18 @@ class Conf:
     LR_DECAY_STEPS: int = 1e5
 
     def __init__(self):
-        pass
+        self.ACTION_SPACE = list(range(64 * 73))
 
     def __post_init__(self):
         pass
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def __repr__(self):
+        rs = "Configurations:\n"
+        rs += "".join(
+            f"  {k}: {self[k]}\n" if k != "ACTION_SPACE" else ""
+            for k in self.__dataclass_fields__.keys()
+        )
+        return rs
