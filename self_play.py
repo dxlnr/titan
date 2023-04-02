@@ -9,7 +9,8 @@ from titan.mcts.action import ActionHistory
 from titan.mcts import run_mcts
 from titan.mcts.mcts import select_action
 from titan.mem import ReplayBuffer, SharedStorage
-from titan.models import M0Net
+from titan.models import M0Net 
+from titan.models.muzero import transform_to_scalar
 
 
 def run_selfplay(config: Conf, storage: SharedStorage, replay_buffer: ReplayBuffer):

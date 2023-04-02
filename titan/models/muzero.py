@@ -85,8 +85,6 @@ class M0Net(nn.Module):
             self.block_output_size_policy,
         )
 
-        self.full_support_size = 10
-
     def representation(self, obs):
         """."""
         s = self.repr_network(obs)
@@ -115,13 +113,11 @@ class M0Net(nn.Module):
 
     def dynamics(self, hidden_state, action):
         """."""
-        print(len(action.shape))
         if len(action.shape) == 3:
             action = action.unsqueeze(0)
         if len(hidden_state.shape) == 3:
             hidden_state = hidden_state.unsqueeze(0)
 
-        print(hidden_state.shape, action.shape)
         # Stack encoded_state with a game specific one hot encoded action.
         # (See paper appendix Network Architecture)
         x = torch.cat((hidden_state, action), 1)
@@ -168,7 +164,6 @@ class M0Net(nn.Module):
     def recurrent_inference(self, hidden_state, action):
         """."""
         next_s, reward = self.dynamics(hidden_state, action)
-        print("next state shape: ", next_s.shape)
         policy_logits, value = self.prediction(next_s)
 
         return value, reward, policy_logits, next_s
