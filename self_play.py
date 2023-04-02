@@ -61,8 +61,8 @@ def play_game(config: Conf, model: M0Net):
                 hidden_state,
             ) = model.initial_inference(observation)
 
-            print(hidden_state)
-            root.expand(game.get_actions(), game.to_play(), reward, policy, hidden_state)
+            sr = transform_to_scalar(config, reward).item()
+            root.expand(game.get_actions(), game.to_play(), sr, policy, hidden_state)
             root.add_exploration_noise(config)
 
             # We then run a Monte Carlo Tree Search using only action sequences and the
