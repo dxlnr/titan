@@ -699,8 +699,8 @@ class Board:
         else:
             print("Invalid move: ", initial_position, final_position, promoted_piece)
 
-    ## player = "w" or "b", side="queenside" or "kingside"
-    def castle(self, side, inplace=False):
+    def castle(self, side, inplace: bool = False):
+        """player = "w" or "b", side="queenside" or "kingside"."""
         if self.player == 0 and self.K_move_count == 0:
             if (
                 side == "queenside"

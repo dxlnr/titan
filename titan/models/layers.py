@@ -46,7 +46,6 @@ def mlp(
 ):
     """Basic Multi-Layer Perceptron Architecture."""
     sizes = [input_size] + layer_sizes + [output_size]
-    print("sizes", sizes)
     layers = []
     for i in range(len(sizes) - 1):
         act = activation if i < len(sizes) - 2 else output_activation

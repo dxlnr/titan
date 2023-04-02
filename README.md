@@ -5,6 +5,12 @@
 
 Zero Knowledge Chess Engine 
 
+## Getting Started
+Let the engine play itself:
+```bash
+pyton self_play.py 
+```
+
 TODO
 - Seperate the Chess state class into general Game class that knows nothing about the 
 specific game & a "Environment" class that handles all the game specific things.

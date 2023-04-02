@@ -6,9 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 from titan.config import Conf
-from titan.mcts.action import ActionHistory
 from titan.mcts.node import Node
-from titan.mcts.state import State
 from titan.models import M0Net
 from titan.models.muzero import transform_to_scalar
 
@@ -101,7 +99,6 @@ def run_mcts(
     config: Conf,
     root_node: Node,
     action_state,
-    history: ActionHistory,
     model: M0Net,
     add_exploration_noise=False,
 ):
@@ -109,11 +106,11 @@ def run_mcts(
     min_max_stats = MinMaxStats()
 
     for i in tqdm(range(config.NUM_ROLLOUTS)):
-        node, s, history = (
+        node, s = (
             root_node,
             copy.deepcopy(action_state),
-            copy.deepcopy(history),
         )
+        history = s.action_history()
         search_path = [node]
         # Select
         while not node.is_leaf_node():

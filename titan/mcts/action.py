@@ -4,9 +4,9 @@
 class ActionHistory:
     """Action state container used to keep track of the actions executed."""
 
-    def __init__(self):
+    def __init__(self, action_history: list):
         self.observation_history = []
-        self.action_history = []
+        self.action_history = action_history
         self.reward_history = []
         self.to_play_history = []
         self.child_visits = []

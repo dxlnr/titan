@@ -20,7 +20,8 @@ class Conf:
 
     :param ACTION_SPACE: NRayDirs x MaxRayLength + NKnightDirs + NPawnDirs * NMinorPromotions,
         encoding a probability distribution over 64 x 73 = 4,672 possible moves.
-    :param CHANNELS:
+    :param CHANNELS: Number of hidden planes for each convolution. Default stated in paper
+        is 256.
     """
 
     # GAME
@@ -42,7 +43,7 @@ class Conf:
 
     # MCTS
     MAX_MOVES: int = 512
-    NUM_ROLLOUTS: int = 800
+    NUM_ROLLOUTS: int = 200
     DISCOUNT: float = 1.0
     EPSILON: float = 0.001
     ROOT_DIRICHLET_ALPHA: float = 0.3

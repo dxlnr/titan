@@ -4,8 +4,10 @@ from typing import Tuple
 import numpy as np
 import torch
 
+from titan.config import Conf
 from titan.game.chess_board import Board
-from titan.mcts.state import State
+from titan.mcts.action import ActionHistory
+from titan.mcts.node import Node
 
 
 class Chess:
@@ -38,8 +40,9 @@ class Chess:
         "p": 11,  # Black Pawn
     }
 
-    def __init__(self, state=None):
-        # In this case the chess.Board class.
+    def __init__(self, config: Conf, state=None):
+        self.config = config
+        # State is the Board class in the chess case.
         if state is None:
             self.state = Board()
         else:
@@ -50,9 +53,13 @@ class Chess:
         # Representation of the board inputs which gets feeded to h (representation).
         # C, H, W : 119 x 8 x 8
         self.enc_state = torch.zeros([(self.M * self.T + self.L), self.N, self.N])
-        # Representation of all possible actions from certain state.
-        # 73 x 8 x 8
-        self.enc_action = torch.zeros([73, self.N, self.N])
+        # # Representation of all possible actions from certain state.
+        # # 73 x 8 x 8
+        # self.enc_action = torch.zeros([73, self.N, self.N])
+        self.history = []
+        self.reward = []
+        self.child_visits = []
+        self.root_values = []
 
         # Add the initial position as encoded board state.
         self.encode_board_state()
@@ -386,3 +393,34 @@ class Chess:
     def to_play(self) -> bool:
         """Returns the color that is next up to play."""
         return self.state.player
+
+    def apply(self, action: int) -> None:
+        """Updates the internal board state by applying an action."""
+        s, t, p = self.decode_action(action)
+        self.state.move_piece(s[0], t[0], p[0])
+        # Update internals.
+        if (
+            self.state.check_status() == True
+            and self.state.in_check_possible_moves() == []
+        ):
+            self.reward.append(1)
+        else:
+            self.reward.append(0)
+        self.t += 1
+        self.encode_board_state()
+        self.history.append(action)
+
+    def store_search_stats(self, config: Conf, root: Node) -> None:
+        """."""
+        v = sum(child.n_k for child in root.children.values())
+        self.child_visits.append(
+            [
+                root.children[a].n_k / v if a in root.children else 0
+                for a in self.config.ACTION_SPACE
+            ]
+        )
+        self.root_values.append(root.value())
+
+    def action_history(self) -> ActionHistory:
+        """Returns an ActionHistory for current mcts."""
+        return ActionHistory(self.history)
