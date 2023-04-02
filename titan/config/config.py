@@ -42,12 +42,13 @@ class Conf:
     SUPPORT_SIZE: int = 10
 
     # VISIT_SOFTMAX_TEMPERATURE_FN
-    MAX_MOVES: int = 1000
-    NUM_ROLLOUTS: int = 100
-    DISCOUNT: float = 0.0
+    MAX_MOVES: int = 512
+    NUM_ROLLOUTS: int = 800
+    DISCOUNT: float = 1.0
+    EPSILON: float = 0.001
 
     # Root prior exploration noise.
-    ROOT_DIRICHLET_ALPHA: float = 0.25
+    ROOT_DIRICHLET_ALPHA: float = 0.3
     ROOT_EXPLORATION_FRACTION: float = 0.25
 
     # UCB formula

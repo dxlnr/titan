@@ -172,3 +172,27 @@ class M0Net(nn.Module):
         policy_logits, value = self.prediction(next_s)
 
         return value, reward, policy_logits, next_s
+
+
+def transform_to_scalar(config, x) -> float:
+    """Transform a categorical representation to a scalar.""" 
+    probs = torch.softmax(x, dim=1)
+    support = (
+        torch.tensor([x for x in range(-config.SUPPORT_SIZE, config.SUPPORT_SIZE + 1)])
+        .expand(probs.shape)
+        .float()
+        .to(device=probs.device)
+    )
+    x = torch.sum(support * probs, dim=1, keepdim=True)
+
+    # Invert the scaling (defined in https://arxiv.org/abs/1805.11593)
+    x = torch.sign(x) * (
+        ((torch.sqrt(1 + 4 * config.EPSILON * (torch.abs(x) + 1 + config.EPSILON)) - 1) / (2 * config.EPSILON))
+        ** 2
+        - 1
+    )
+    return x
+
+
+def transform_from_scalar(config, x: int):
+    sx = math.sign(x) * (math.sqrt(math.abs(x) + 1) -1 + config.EPSILON * x)

@@ -9,6 +9,7 @@ from titan.config import Conf
 from titan.mcts.state import State
 from titan.mcts.node import Node
 from titan.mcts.action import ActionHistory
+from titan.models.muzero import transform_to_scalar
 
 # from titan.game.chess_state import Chess
 from titan.models import M0Net
@@ -85,6 +86,15 @@ def ucb_score(
     return prior_score + value_score
 
 
+def backpropagate(search_path: list[Node], value: float, to_play: bool, discount: float, min_max_stats: MinMaxStats):
+    """Backpropagate all the way up the tree to the root."""
+    for node in search_path:
+        node.w_k += value if node.to_play == to_play else -value
+        node.n_k += 1
+        min_max_stats.update(node.value())
+
+        value = node.reward + discount * value
+
 def select_action(node: Node, temperature: float = 0) -> str:
     """."""
 
@@ -132,11 +142,17 @@ def run_mcts(
         a = s.encode_single_action(source[0], t[0], pro[0])
 
         v, r, p, s_next = model.recurrent_inference(parent.hidden_state, a)
+
+        sr = transform_to_scalar(config, r)
+        sv = transform_to_scalar(config, v)
+
+        print("value, reward", sv, sr)
         # 
         # TODO: s.update() in some sort.
         #
+        print(node)
         # (2) Expand
-        node.expand(s.get_actions(), s.to_play(), r, p, s_next)
+        node.expand(s.get_actions(), s.to_play(), sr, p, s_next)
 
         # if not node.is_leaf_node() or not s.is_terminal():
         #     node = policy(node)
@@ -147,12 +163,14 @@ def run_mcts(
 #         delta = s.eval()
 
         # (4) Backpropagate
-        while True:
-            node.propagate(delta)
-            if node.is_root_node():
-                break
+        backpropagate(search_path, v, s.to_play(), config.DISCOUNT, min_max_stats)
 
-            node = node.parent
+        # while True:
+        #     node.propagate(delta)
+        #     if node.is_root_node():
+        #         break
+
+        #     node = node.parent
 
     # return choose_move(root_node)
     return root_node

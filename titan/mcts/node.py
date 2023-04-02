@@ -19,7 +19,7 @@ class Node:
         self.children = {}
 
     def __repr__(self) -> str:
-        return f"Node| n: {self.n_k}, w: {self.w_k}, action: {self.action}, parent: {self.parent}."
+        return f"Node| n: {self.n_k}, w: {self.w_k}, parent: {self.parent}."
 
     def expand(
         self, actions, to_play, reward, policy_logits, hidden_state
@@ -56,6 +56,16 @@ class Node:
                 self.children[a].prior * (1 - config.ROOT_EXPLORATION_FRACTION)
                 + n * config.ROOT_EXPLORATION_FRACTION
             )
+
+#     def backpropagate(self, search_path, value: float, to_play, discount: float, min_max_stats):
+#         """Backpropagation all the way up the tree to the root for evaluation."""
+
+#         for node in search_path:
+#             node.value_sum += value if node.to_play == to_play else -value
+#             node.visit_count += 1
+#             min_max_stats.update(node.value())
+
+#             value = node.reward + discount * value
 
     def is_leaf_node(self) -> bool:
         """Returns True if the node is a leaf node."""
