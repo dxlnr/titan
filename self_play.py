@@ -37,7 +37,7 @@ def play_game(config: Conf, model: M0Net) -> Chess:
     # initialize the Action state history.
     game.history.append(0)
     game.reward.append(0)
-
+    
     with torch.no_grad():
         while not game.is_terminal() and len(game.history) < config.MAX_MOVES:
             # At the root of the search tree we use the representation function to

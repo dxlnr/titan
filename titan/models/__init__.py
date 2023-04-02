@@ -1,3 +1,3 @@
-from .muzero import M0Net
+from .muzero import build_model, M0Net
 
-__all__ = ["M0Net"]
+__all__ = ["build_model", "M0Net"]

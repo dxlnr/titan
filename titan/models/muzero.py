@@ -7,6 +7,8 @@ from titan.mcts.state import State
 from titan.models.nets import DynamicsNet, PredictionNet, ReprNet
 
 
+
+
 class M0Net(nn.Module):
     """MuZero Network Architecture."""
 
@@ -197,3 +199,13 @@ def transform_to_scalar(config, x) -> float:
 
 def transform_from_scalar(config, x: int):
     sx = math.sign(x) * (math.sqrt(math.abs(x) + 1) - 1 + config.EPSILON * x)
+
+
+def build_model(config: Conf) -> M0Net:
+    """Returns model."""
+    model = M0Net(config)
+    # Load pretrained model from path.
+    if config.MODEL_PATH:
+        model.load_state_dict(torch.load(config.MODEL_PATH))
+    return model 
+

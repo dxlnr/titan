@@ -23,7 +23,6 @@ class Conf:
     :param CHANNELS: Number of hidden planes for each convolution. Default stated in paper
         is 256.
     """
-
     # GAME
     NUM_ACTORS: int = 2
     OBSERVATION_SHAPE: Tuple[int] = (119, 8, 8)
@@ -57,21 +56,22 @@ class Conf:
     # AlphaZero in board games.
     # KNOWN_BOUNDS
 
-    ### Training
-    TRAINING_STEPS: int = int(1e6)
+    # TRAINING 
+    LOSS: str = "mse"
+    TRAINING_STEPS: int = int(1e5)
     CHECKPOINT_INTERVAL: int = int(1e3)
     WINDOW_SIZE: int = int(1e6)
     BATCH_SIZE: int = 2048
     NUM_UNROLL_STEPS: int = 5
     TD_STEPS: int = 10
-
     WEIGHT_DECAY: float = 1e-4
     MOMENTUM: float = 0.9
-
-    # Exponential learning rate schedule
     LR_INIT: float = 1e-3
     LR_DECAY_RATE = 0.1
     LR_DECAY_STEPS: int = 1e5
+
+    # DATA 
+    MODEL_PATH: str = ''
 
     def __init__(self):
         self.ACTION_SPACE = list(range(64 * 73))

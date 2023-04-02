@@ -17,5 +17,7 @@ class SharedStorage:
             # policy -> uniform, value -> 0, reward -> 0
             # return make_uniform_network()
 
-    def save_network(self, step: int, network: M0Net):
-        self._networks[step] = network
+    def save_model(self, step: int, model: M0Net) -> None:
+        """Save torch model."""
+        pass
+        # self._networks[step] = network
