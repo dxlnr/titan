@@ -1,13 +1,37 @@
 """Monte-Carlo Tree Search"""
 import copy
+import numpy as np
 import random
+import math
 from tqdm import tqdm
 
 from titan.config import Conf
 from titan.mcts.state import State
 from titan.mcts.node import Node
-from titan.mcts.action import ActionState
+from titan.mcts.action import ActionHistory
+
+# from titan.game.chess_state import Chess
 from titan.models import M0Net
+
+
+class MinMaxStats:
+    """A class that holds the min-max values of the tree."""
+
+    MAXIMUM_FLOAT_VALUE: float = float("inf")
+
+    def __init__(self):
+        self.maximum = -float("inf")
+        self.minimum = float("inf")
+
+    def update(self, value):
+        self.maximum = max(self.maximum, value)
+        self.minimum = min(self.minimum, value)
+
+    def normalize(self, value):
+        if self.maximum > self.minimum:
+            # We normalize only when we have set the maximum and minimum values
+            return (value - self.minimum) / (self.maximum - self.minimum)
+        return value
 
 
 def policy(node: Node) -> Node:
@@ -30,10 +54,35 @@ def policy(node: Node) -> Node:
     return node.children[idx]
 
 
-def simulate_policy(state: State) -> State:
+def select_child(config, node: Node, min_max_stats: MinMaxStats):
+    """Select the child with the highest UCB score."""
+    max_ucb = max(
+        ucb_score(config, node, child, min_max_stats)
+        for action, child in node.children.items()
+    )
+    action = np.random.choice(
+        [
+            action
+            for action, child in node.children.items()
+            if ucb_score(config, node, child, min_max_stats) == max_ucb
+        ]
+    )
+    return action, node.children[action]
+
+
+def ucb_score(
+    config: Conf, parent: Node, child: Node, min_max_stats: MinMaxStats
+) -> float:
     """."""
-    state.random_upd()
-    return state
+    pb_c = (
+        math.log((parent.n_k + config.PB_C_BASE + 1) / config.PB_C_BASE)
+        + config.PB_C_INIT
+    )
+    pb_c *= math.sqrt(parent.n_k) / (child.n_k + 1)
+
+    prior_score = pb_c * child.prior
+    value_score = min_max_stats.normalize(child.value())
+    return prior_score + value_score
 
 
 def select_action(node: Node, temperature: float = 0) -> str:
@@ -55,41 +104,47 @@ def select_action(node: Node, temperature: float = 0) -> str:
 def run_mcts(
     config: Conf,
     root_node: Node,
-    action_state: ActionState,
+    action_state,
+    history: ActionHistory,
     model: M0Net,
     add_exploration_noise=False,
 ):
     """Runs the Monte-Carlo Tree Search."""
-    # root_node = Node()
-
-    # if add_exploration_noise:
-    #     root_node.add_exploration_noise(
-    #         dirichlet_alpha=config.ROOT_DIRICHLET_ALPHA,
-    #         exploration_fraction=config.ROOT_EXPLORATION_FRACTION,
-    #     )
+    min_max_stats = MinMaxStats()
 
     for i in tqdm(range(config.NUM_ROLLOUTS)):
-        node, s = root_node, copy.deepcopy(action_state)
+        node, s, history = (
+            root_node,
+            copy.deepcopy(action_state),
+            copy.deepcopy(history),
+        )
         search_path = [node]
 
         # (1) Select
         while not node.is_leaf_node():
-            node = policy(node)
-            s.update(str(node.action))
-            # search_path.append(node)
+            action, node = select_child(config, node, min_max_stats)
+            history.add_action(action)
+            search_path.append(node)
 
         parent = search_path[-2]
-        v, r, p, s_next = model.recurrent_inference(parent.s, game.last_action())
+        # Encode the action for using it as input to the neural net.
+        source, t, pro = s.decode_action(history.last_action())
+        a = s.encode_single_action(source[0], t[0], pro[0])
 
+        v, r, p, s_next = model.recurrent_inference(parent.hidden_state, a)
+        # 
+        # TODO: s.update() in some sort.
+        #
         # (2) Expand
-        node.expand(s)
-        if not node.is_leaf_node() or not s.is_terminal():
-            node = policy(node)
+        node.expand(s.get_actions(), s.to_play(), r, p, s_next)
 
-        # (3) Simulate
-        while not s.is_terminal():
-            s = simulate_policy(s)
-        delta = s.eval()
+        # if not node.is_leaf_node() or not s.is_terminal():
+        #     node = policy(node)
+
+#         # (3) Simulate
+#         while not s.is_terminal():
+#             s = simulate_policy(s)
+#         delta = s.eval()
 
         # (4) Backpropagate
         while True:

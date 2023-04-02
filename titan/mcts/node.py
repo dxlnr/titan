@@ -9,11 +9,11 @@ from titan.mcts.state import State
 class Node:
     """Node within the MCTS."""
 
-    def __init__(self, prior: float, action: str = "", parent=None):
+    def __init__(self, prior: float, parent=None):
         self.n_k, self.w_k = 0, 0
         self.reward = 0
         self.to_play = -1
-        self.action = action
+        self.hidden_state = None
         self.parent = parent
         self.prior = prior
         self.children = {}
@@ -22,7 +22,7 @@ class Node:
         return f"Node| n: {self.n_k}, w: {self.w_k}, action: {self.action}, parent: {self.parent}."
 
     def expand(
-        self, actions: int, to_play, reward, policy_logits, hidden_state
+        self, actions, to_play, reward, policy_logits, hidden_state
     ) -> None:
         """When node is choosen and not terminal, expands the tree by finding all
         possible child nodes.
@@ -33,39 +33,28 @@ class Node:
         self.reward = reward
         self.hidden_state = hidden_state
 
-        #         print(policy_logits)
-        print(policy_logits.shape)
+        if len(policy_logits.shape) == 2:
+            policy_logits = policy_logits.squeeze()
 
-        print(type(actions))
-        print(actions)
-        policy_logits = policy_logits.squeeze()
-        # if not state.is_terminal():
-        # policy_values = torch.softmax(policy_logits, dim=0).tolist()
         policy = {a: math.exp(policy_logits[a]) for a in actions}
         policy_sum = sum(policy.values())
-        print(policy_sum)
-
-        # print("policy values: ", policy_values)
-        # policy = {a: policy_values[i] for i, a in enumerate(actions)}
 
         for action, p in policy.items():
-            self.children[action] = Node((p / policy_sum), action, self)
-            # for m in state.get_legal_actions():
-            #     c_node = Node(m, self)
-            #     self.children.append(c_node)
+            self.children[action] = Node((p / policy_sum), self)
 
-    def add_exploration_noise(self, root_dirichlet_alpha, root_exploration_frac):
+    def add_exploration_noise(self, config):
         """At the start of each search, dirichlet noise is added to the prior of
         the root to encourage the search to explore new actions.
 
         :param root_dirichlet_alpha:
         :param root_exploration_frac:
         """
-        noise = np.random.dirichlet([root_dirichlet_alpha] * len(self.children))
-        for n in noise:
-            self.children.prior = (
-                node.children.prior * (1 - root_exploration_frac)
-                + n * root_exploration_frac
+        actions = list(self.children.keys())
+        noise = np.random.dirichlet([config.ROOT_DIRICHLET_ALPHA] * len(self.children))
+        for a, n in zip(actions, noise):
+            self.children[a].prior = (
+                self.children[a].prior * (1 - config.ROOT_EXPLORATION_FRACTION)
+                + n * config.ROOT_EXPLORATION_FRACTION
             )
 
     def is_leaf_node(self) -> bool:

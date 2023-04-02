@@ -108,82 +108,9 @@ class Chess:
                         dec[i, j] = inv_map[k]
         return dec
 
-    # def encode_action(self, source, target, underpromote=None) -> None:
-    #     """."""
-    #     i, j = source
-    #     x, y = target
-    #     dx, dy = x-i, y-j
-    #     piece = self.state.current_board[i, j]
-    #     if piece in ["R","B","Q","K","P","r","b","q","k","p"] and underpromote in [None, "queen"]:
-    #         if dx != 0 and dy == 0: # north-south idx 0-13
-    #             if dx < 0:
-    #                 idx = 7 + dx
-    #             elif dx > 0:
-    #                 idx = 6 + dx
-    #         if dx == 0 and dy != 0: # east-west idx 14-27
-    #             if dy < 0:
-    #                 idx = 21 + dy
-    #             elif dy > 0:
-    #                 idx = 20 + dy
-    #         if dx == dy: # NW-SE idx 28-41
-    #             if dx < 0:
-    #                 idx = 35 + dx
-    #             if dx > 0:
-    #                 idx = 34 + dx
-    #         if dx == -dy: # NE-SW idx 42-55
-    #             if dx < 0:
-    #                 idx = 49 + dx
-    #             if dx > 0:
-    #                 idx = 48 + dx
-
-    #     if piece in ["n","N"]: # Knight moves 56-63
-    #         if (x,y) == (i+2,j-1):
-    #             idx = 56
-    #         elif (x,y) == (i+2,j+1):
-    #             idx = 57
-    #         elif (x,y) == (i+1,j-2):
-    #             idx = 58
-    #         elif (x,y) == (i-1,j-2):
-    #             idx = 59
-    #         elif (x,y) == (i-2,j+1):
-    #             idx = 60
-    #         elif (x,y) == (i-2,j-1):
-    #             idx = 61
-    #         elif (x,y) == (i-1,j+2):
-    #             idx = 62
-    #         elif (x,y) == (i+1,j+2):
-    #             idx = 63
-
-    #     if piece in ["p", "P"] and (x == 0 or x == 7) and underpromote != None: # underpromotions
-    #         if abs(dx) == 1 and dy == 0:
-    #             if underpromote == "rook":
-    #                 idx = 64
-    #             if underpromote == "knight":
-    #                 idx = 65
-    #             if underpromote == "bishop":
-    #                 idx = 66
-    #         if abs(dx) == 1 and dy == -1:
-    #             if underpromote == "rook":
-    #                 idx = 67
-    #             if underpromote == "knight":
-    #                 idx = 68
-    #             if underpromote == "bishop":
-    #                 idx = 69
-    #         if abs(dx) == 1 and dy == 1:
-    #             if underpromote == "rook":
-    #                 idx = 70
-    #             if underpromote == "knight":
-    #                 idx = 71
-    #             if underpromote == "bishop":
-    #                 idx = 72
-
-    #     self.enc_action[idx, i, j] = 1
-    #     self.enc_action = self.enc_action.reshape(-1)
-    #     self.enc_action = np.where(self.enc_action==1)[0][0]
-
     def encode_action(self, source, target, underpromote=None) -> None:
         """."""
-        enc_action = np.zeros([73, 8, 8]).astype(int)
+        enc_action = np.zeros([8, 8, 73]).astype(int)
         i, j = source
         x, y = target
         dx, dy = x - i, y - j
@@ -264,15 +191,15 @@ class Chess:
                 if underpromote == "bishop":
                     idx = 72
 
-        enc_action[idx, i, j] = 1
+        enc_action[i, j, idx] = 1
         enc_action = enc_action.reshape(-1)
         enc_action = np.where(enc_action == 1)[0][0]
         return enc_action
 
-    def decode_action(self):
+    def decode_action(self, action_idx):
         """."""
         dec_a = np.zeros([4672])
-        dec_a[self.enc_action] = 1
+        dec_a[action_idx] = 1
         dec_a = dec_a.reshape(8, 8, 73)
         a, b, c = np.where(dec_a == 1)
         i_pos, f_pos, prom = [], [], []
@@ -407,6 +334,11 @@ class Chess:
     def encode_single_action(self, source, target, promotion=None):
         """."""
         act = torch.zeros([self.N, self.N, self.N])
+        print(source)
+        print(target)
+        print(promotion)
+        s_i, s_j = source
+        t_i, t_j = target
         # Position the piece was moved from.
         act[0, s_i, s_j] = 1
         # Position the piece was moved to.
@@ -415,17 +347,17 @@ class Chess:
         act[2, :, :] = 1
         # Promotion encodings.
         if promotion == "queen":
-            enc_action[3, :, :] = 1
+            act[3, :, :] = 1
         elif promotion == "knight":
-            enc_action[4, :, :] = 1
+            act[4, :, :] = 1
         elif promotion == "bishop":
-            enc_action[5, :, :] = 1
+            act[5, :, :] = 1
         elif promotion == "rook":
-            enc_action[6, :, :] = 1
+            act[6, :, :] = 1
         else:
-            enc_action[7, :, :] = 1
+            act[7, :, :] = 1
 
-        return enc_action
+        return act
 
     def get_observation(self) -> torch.Tensor:
         """Returns the observation tensor."""

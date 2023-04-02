@@ -5,7 +5,7 @@ from titan.config import Conf
 # from titan.mcts.chess_state import Chess
 from titan.game.chess_state import Chess
 from titan.mcts.node import Node
-from titan.mcts.action import ActionState
+from titan.mcts.action import ActionHistory
 from titan.mcts import run_mcts
 from titan.mcts.mcts import select_action
 from titan.mem import ReplayBuffer, SharedStorage
@@ -31,18 +31,18 @@ def play_game(config: Conf, model: M0Net):
     until the end of the game is reached.
     """
     game = Chess()
-    action_state = ActionState()
+    action_history = ActionHistory()
     observation = game.get_observation()
     # initialize the Action state history.
-    action_state.action_history.append(0)
-    action_state.observation_history.append(observation)
-    action_state.reward_history.append(0)
-    action_state.to_play_history.append(game.to_play())
+    action_history.action_history.append(0)
+    action_history.observation_history.append(observation)
+    action_history.reward_history.append(0)
+    action_history.to_play_history.append(game.to_play())
 
     with torch.no_grad():
         while (
             not game.is_terminal()
-            and len(action_state.action_history) < config.MAX_MOVES
+            and len(action_history.action_history) < config.MAX_MOVES
         ):
             # At the root of the search tree we use the representation function to
             # obtain a hidden state given the current observation.
@@ -61,13 +61,13 @@ def play_game(config: Conf, model: M0Net):
                 hidden_state,
             ) = model.initial_inference(observation)
 
+            print(hidden_state)
             root.expand(game.get_actions(), game.to_play(), reward, policy, hidden_state)
-            # model.initial_inference(current_observation))
-            # add_exploration_noise(config, root)
+            root.add_exploration_noise(config)
 
             # We then run a Monte Carlo Tree Search using only action sequences and the
             # model learned by the network.
-            # run_mcts(config, root, game.action_history(), model)
+            run_mcts(config, root, game, action_history, model)
             # root_node = run_mcts(config, root, action_state, model)
 
             # action = select_action(root)

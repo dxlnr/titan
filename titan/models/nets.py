@@ -152,6 +152,7 @@ class DynamicsNet(nn.Module):
     def __init__(
         self,
         c_in,
+        c_out,
         depth,
         reduced_c_rewards,
         fc_reward_layers,
@@ -162,20 +163,18 @@ class DynamicsNet(nn.Module):
         super(DynamicsNet, self).__init__()
         self.fc_reward_layers = list(fc_reward_layers)
 
-        self.conv = StdConv2d(c_in, c_in - 1)
-        self.bn = nn.BatchNorm2d(c_in - 1)
-
+        self.conv = Conv(c_in, c_out)
         self.blocks = nn.Sequential()
         for idx in range(depth):
             self.blocks.add_module(
                 str(idx),
                 block_fn(
-                    c_in,
-                    c_in,
+                    c_out,
+                    c_out,
                 ),
             )
 
-        self.conv_reward = nn.Conv2d(c_in - 1, reduced_c_rewards, 1)
+        self.conv_reward = nn.Conv2d(c_out, reduced_c_rewards, 1)
         self.block_output_reward = block_output_reward
 
         self.fc = mlp(
@@ -186,20 +185,9 @@ class DynamicsNet(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.bn(x)
-        x = nn.functional.relu(x)
-
         x = self.blocks(x)
         state = x
         x = self.conv_reward(x)
         x = x.view(-1, self.block_output_reward)
         reward = self.fc(x)
         return state, reward
-
-
-# def build_prediction_network(pretrained: bool = False, **kwargs):
-#     """."""
-#     model = PredictionNet(block, layers, **kwargs)
-
-#     if pretrained:
-#         model.load_state_dict(state_dict)

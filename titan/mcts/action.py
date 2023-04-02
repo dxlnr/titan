@@ -1,7 +1,7 @@
 """Action State History"""
 
 
-class ActionState:
+class ActionHistory:
     """Action state container used to keep track of the actions executed."""
 
     def __init__(self):
@@ -12,18 +12,13 @@ class ActionState:
         self.child_visits = []
         self.root_values = []
 
-        # # Timesteps, history and current
-        # self.T, self.t = 8, 0
-        # # Representation of the board inputs which gets feeded to h (representation).
-        # self.enc_state = torch.zeros([self.N, self.N, (self.M * self.T + self.L)])
-
-    def add_action(self, action):
+    def add_action(self, action: int) -> None:
         """Appends an action."""
-        self.history.append(action)
+        self.action_history.append(action)
 
     def last_action(self):
         """Returns the last action."""
-        pass
+        return self.action_history[-1]
 
     def action_space(self) -> list:
         """Returns a list of all actions performed."""
